@@ -1,20 +1,8 @@
+
+
 #include "Swr_Model.h"
 
-
-
-#include <sstream>
-#include <iomanip>
-
-template <typename T>
-std::string to_string_with_precision(const T a_value, const int n = 6)
-{
-	std::ostringstream out;
-	out << std::setprecision(n) << a_value;
-	return out.str();
-}
-
-namespace LibXenoverse
-{
+using namespace Common;
 
 /*-------------------------------------------------------------------------------\
 |                             Swr_Model											 |
@@ -358,7 +346,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size)
 		if (memcmp(hdr_section2->signature, SWR_MODEL_SIGNATURE_COMPRESSED, 4) == 0)		//Todo after : take care of "Comp" Compressed
 		{
 			::printf("Warning: Comp (for Compressed data) is not take care. did you use data from Pc version ? skipped.\n");
-			LibXenoverse::notifyWarning();
+			notifyWarning();
 			continue;
 		}
 
@@ -397,7 +385,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size)
 			)
 		{
 			::printf("Warning: Unknowed Section2_header Signature :%c%c%c%c skipped.\n", hdr_section2->signature[0], hdr_section2->signature[1], hdr_section2->signature[2], hdr_section2->signature[3]);
-			LibXenoverse::notifyWarning();
+			notifyWarning();
 			continue;
 		}
 
@@ -459,7 +447,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size)
 				)
 			{
 				::printf("Warning: Unknowed Section2_SubHeader Signature :%c%c%c%c skipped.\n", hdr_section2_sub->signature[0], hdr_section2_sub->signature[1], hdr_section2_sub->signature[2], hdr_section2_sub->signature[3]);
-				LibXenoverse::notifyWarning();
+				notifyWarning();
 				break;
 
 			}else if (memcmp(hdr_section2_sub->signature, SWR_MODEL_SIGNATURE_ANIM, 4) == 0) {
@@ -1403,7 +1391,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size)
 				default:
 				{
 					::printf("Warning: Unknowed animation flags for component %s. skipped.\n", UnsignedToString(hdr_anim->flags, true).c_str());
-					LibXenoverse::notifyWarning();
+					notifyWarning();
 				}break;
 				}
 
@@ -1529,8 +1517,8 @@ void Swr_Model::save_Coloration(string filename, bool show_error)
 				uint8_t *buf_tmp = new uint8_t[filesize];
 				if (!buf_tmp)
 				{
-					LOG_DEBUG("%s: Memory allocation error (0x%x)\n", FUNCNAME, filesize);
-					LibXenoverse::notifyError();
+					printf("%s: Memory allocation error (0x%x)\n", FUNCNAME, filesize);
+					notifyError();
 					return;
 				}
 				uint32_t* buf_u32 = (uint32_t*)buf_tmp;
@@ -1639,7 +1627,7 @@ void Swr_Model::write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_
 		if (memcmp(hdr_section2->signature, SWR_MODEL_SIGNATURE_COMPRESSED, 4) == 0)
 		{
 			::printf("Warning: Comp (for Compressed data) is not take care. did you use data from Pc version ? skipped.\n");
-			LibXenoverse::notifyWarning();
+			notifyWarning();
 			continue;
 		}
 
@@ -1679,7 +1667,7 @@ void Swr_Model::write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_
 			)
 		{
 			::printf("Warning: Unknowed Section2_header Signature :%c%c%c%c skipped.\n", hdr_section2->signature[0], hdr_section2->signature[1], hdr_section2->signature[2], hdr_section2->signature[3]);
-			LibXenoverse::notifyWarning();
+			notifyWarning();
 			continue;
 		}
 
@@ -1719,7 +1707,7 @@ void Swr_Model::write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_
 				)
 			{
 				::printf("Warning: Unknowed Section2_SubHeader Signature :%c%c%c%c skipped.\n", hdr_section2_sub->signature[0], hdr_section2_sub->signature[1], hdr_section2_sub->signature[2], hdr_section2_sub->signature[3]);
-				LibXenoverse::notifyWarning();
+				notifyWarning();
 				break;
 
 			}else if (memcmp(hdr_section2_sub->signature, SWR_MODEL_SIGNATURE_ANIM, 4) == 0) {
@@ -2559,14 +2547,14 @@ void Swr_Model::write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_
 					//I think the case 5 use splines animations : offset_values and offset_AltN may be are offset for the spline. Todo check
 
 					::printf("Anim flag 5 (nbKf: %d) offset for spline ? offVal : %s, offAlt: %s. skipped.\n", hdr_anim->nbKeyFrames, UnsignedToString(hdr_anim->offset_values, true).c_str(), UnsignedToString(hdr_anim->offset_AltN, true).c_str());
-					LibXenoverse::notifyWarning();
+					notifyWarning();
 
 				}break;
 
 				default:
 				{
 					::printf("Warning: Unknowed animation flags for component %s. skipped.\n", UnsignedToString(hdr_anim->flags, true).c_str());
-					LibXenoverse::notifyWarning();
+					notifyWarning();
 				}break;
 				}
 
@@ -2682,7 +2670,7 @@ void Swr_Model::write_Coloration_Tag(string paramName, string paramType, string 
 		if (index >= limit)
 		{
 			::printf("Error on tagID %i : overflow %s >= %s.\n", idTag, UnsignedToString(index, true).c_str(), UnsignedToString(limit, true).c_str());
-			LibXenoverse::notifyError();
+			notifyError();
 			throw("overflow");
 			continue;
 		}
@@ -2690,7 +2678,7 @@ void Swr_Model::write_Coloration_Tag(string paramName, string paramType, string 
 		if ((checkAllreadyTaggued) && (listBytesAllreadyTagged.at(index)!=-1))
 		{
 			::printf("warning on tagID %i : the byte %s allready taggued, may be a overflow between blocks (tag: %i). Infos : %s. \n", idTag, UnsignedToString(index, true).c_str(), listBytesAllreadyTagged.at(index), (sectionName + ((sectionIndexInList != (size_t)-1) ? "[" + std::to_string(sectionIndexInList) + "]" : "") + "." + paramName + " (" + paramType + ") : " + paramComment).c_str());
-			LibXenoverse::notifyError();
+			notifyError();
 			throw("overide Byte");
 		}
 
@@ -2785,6 +2773,3 @@ bool Swr_Model::checkDuplication(size_t offset, std::vector<size_t> &listToAvoid
 			return true;
 	return false;
 };
-
-
-}

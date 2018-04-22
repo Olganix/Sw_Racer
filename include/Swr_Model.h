@@ -1,11 +1,9 @@
 #ifndef SWR_MODELFILE_H
 #define SWR_MODELFILE_H
 
+#include "common.h"
 #include "EMO_BaseFile.h"
 
-
-namespace LibXenoverse
-{
 
 #ifdef _MSC_VER
 #pragma pack(push,1)
@@ -492,12 +490,8 @@ static_assert(sizeof(SWR_Anim_Values_case2_b) == 0x10, "Incorrect structure size
 /*-------------------------------------------------------------------------------\
 |                             Swr_Model											 |
 \-------------------------------------------------------------------------------*/
-class Swr_Model : public LibXenoverse::EMO_BaseFile
+class Swr_Model : public EMO_BaseFile
 {
-	/*
-	std::vector<Swr_Model_Part> mListPart;
-	std::vector<Swr_Model_TextureUnit*> mListTextureUnit;
-	*/
 public:
 	string originefilename;
 
@@ -528,7 +522,5 @@ private:
 
 
 
-
-}
 
 #endif // SWR_MODELFILE_H
