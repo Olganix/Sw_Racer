@@ -1,5 +1,7 @@
 // Author : Eternity (See DragonBall Xenoverse (1 or 2) tools for modding)
 
+#include <math.h>
+#include <sys/stat.h>
 
 #include "common.h"
 #include "EMO_BaseFile.h"

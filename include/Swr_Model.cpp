@@ -1488,7 +1488,7 @@ void Swr_Model::save_Coloration(string filename, bool show_error)
 
 
 
-	/*
+#if 0
 	//Split the main file, into one file by Model, because of TinyXml, Todo commment.
 	{
 		big_endian = true;
@@ -1535,7 +1535,7 @@ void Swr_Model::save_Coloration(string filename, bool show_error)
 		}
 		return; 
 	}
-	*/
+#endif
 	
 	
 	try

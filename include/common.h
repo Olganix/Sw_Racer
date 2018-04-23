@@ -15,6 +15,29 @@
 using namespace std;
 
 
+#include <sstream>
+#include <deque>
+#include <iostream>
+
+using namespace std;
+
+template< class Type >
+string ToString( Type value ) {
+   stringstream s;
+   s << value;
+   return s.str();
+}
+
+template <class T>
+bool FromString(T& t,
+                 const std::string& s,
+                 std::ios_base& (*f)(std::ios_base&))
+{
+  std::istringstream iss(s);
+  return !(iss >> f >> t).fail();
+}
+
+
 
 
 
