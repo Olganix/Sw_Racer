@@ -299,9 +299,11 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size)
 	TiXmlElement* node_models = new TiXmlElement("Models");
 	parent->LinkEndChild(node_models);
 
+  size_t i = 0;
+  nbModels = 1;
 	
 	size_t startoffsetModelHeader = offset;
-	for (size_t i = 0; i < nbModels; i++)
+	for (; i < nbModels; i++)
 	{
 		offset = startoffsetModelHeader + i * sizeof(SWR_MODELHeader);
 
@@ -897,21 +899,58 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size)
 						}
 
 
-						/*
 						if (section3->offset_V90)									//it's a list of numberElements for next parts.
 						{
 							size_t startoffset_sectionV90 = section3->offset_V90 + hdr->offset_Section2;
 							offset = startoffset_sectionV90;
 
+							TiXmlElement* node_sectionV90 = new TiXmlElement("SectionV90");
+							node_sectionV90->SetAttribute("startOffset", UnsignedToString(startoffset_sectionV90, true));
+							node_section3->LinkEndChild(node_sectionV90);
+
 							uint32_t* listValues = (uint32_t*)GetOffsetPtr(buf, offset, true);
 
 							for (size_t m = 0; m < section3->nbElementV90; m++)
 							{
+
+                node = new TiXmlElement("Value"); 
+                node->SetAttribute("u32", UnsignedToString(listValues[m], true));
+                node_sectionV90->LinkEndChild(node);
+
 								offset += sizeof(uint32_t);
 							}
 						}
-						*/
 
+
+#if 0
+// Possibly indices
+            if (section3->offset_unk40)
+						{
+							size_t startoffset_section40 = section3->offset_unk40 + hdr->offset_Section2;
+							offset = startoffset_section40;
+
+							SWR_MODEL_Section40* section40 = (SWR_MODEL_Section48*)GetOffsetPtr(buf, offset, true);
+
+							TiXmlElement* node_section48 = new TiXmlElement("Section40");
+							node_section40->SetAttribute("startOffset", UnsignedToString(startoffset_section40, true));
+							node_section3->LinkEndChild(node_section40);
+
+							size_t inc = 0;
+							while (section40->unk0 != 0xDF)
+							{
+								node = new TiXmlElement("Value"); 
+								node->SetAttribute("u16", UnsignedToString(section48->unk0, true));
+								node_section48->LinkEndChild(node);
+
+								offset += sizeof(SWR_MODEL_Section48);
+								section48++;
+								inc++;
+							}
+							offset += 2 * sizeof(uint32_t);
+
+							node_section40->SetAttribute("debugNbElements", inc);
+						}
+#endif
 
 						//if ((section3->offset_unk40) && (section3->offset_unk44))			//44 is necessary ? => yes, it's 40 witch is not necessary.
 						if (section3->offset_unk44)
