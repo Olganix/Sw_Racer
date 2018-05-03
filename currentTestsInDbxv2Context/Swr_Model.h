@@ -544,6 +544,7 @@ public:
 
 private:
 	bool checkDuplication(size_t offset, std::vector<size_t> &listToAvoidDuplication);
+	bool checkDuplication_Malt_recursion(size_t offset, std::vector<size_t> &listToAvoidDuplication, const uint8_t *buf, size_t size, size_t offset_Section2);
 };
 
 

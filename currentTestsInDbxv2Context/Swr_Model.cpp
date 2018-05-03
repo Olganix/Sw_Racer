@@ -1279,7 +1279,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 		uint32_t* section2_unknowParts = (uint32_t*)GetOffsetPtr(buf, offset, true);
 		while (*section2_unknowParts != 0xFFFFFFFF)
 		{
-			if ((*section2_unknowParts != 0) && (val32(*section2_unknowParts) < sizeSection2) && (!checkDuplication(val32(*section2_unknowParts) + hdr->offset_Section2, listPointer_AltN)))
+			if ((*section2_unknowParts != 0) && (val32(*section2_unknowParts) < sizeSection2) && (!checkDuplication_Malt_recursion(val32(*section2_unknowParts) + hdr->offset_Section2, listPointer_AltN, buf, size, hdr->offset_Section2)))
 			{
 				listPointer_AltN.push_back(val32(*section2_unknowParts) + hdr->offset_Section2);
 				
@@ -1372,7 +1372,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 				{
 					listOffsetAltN[inc_AltN] = val32(listOffsetAltN[inc_AltN]);
 
-					if (!checkDuplication(listOffsetAltN[inc_AltN] + hdr->offset_Section2, listPointer_AltN))
+					if (!checkDuplication_Malt_recursion(listOffsetAltN[inc_AltN] + hdr->offset_Section2, listPointer_AltN, buf, size, hdr->offset_Section2))
 					{
 						listPointer_AltN.push_back(listOffsetAltN[inc_AltN] + hdr->offset_Section2);
 
@@ -1397,9 +1397,17 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 		
 		//saddely , it's could have a Malt just after Hend, never referenced (cf Model_115), So we test to add it.
 		// hope the filter on first flags could avoid trouble.
-		if (!checkDuplication(offset, listPointer_AltN))
-			listPointer_AltN.push_back(offset);
+		//Another problem is for model_001 by checking the first Malt on the last, previously offsets are child of the first. So, we have to reverse the check:
+		std::vector<size_t> reverseCheck_listPointer_AltN;
+		reverseCheck_listPointer_AltN.push_back(offset);					//offset of the first.
 
+		size_t nbMalt_tmp = listPointer_AltN.size();
+		for (size_t j = 0; j < nbMalt_tmp; j++)								//check all references, previously gived.
+		{
+			if (!checkDuplication_Malt_recursion(listPointer_AltN.at(j), reverseCheck_listPointer_AltN, buf, size, hdr->offset_Section2))
+				reverseCheck_listPointer_AltN.push_back(offset);
+		}
+		listPointer_AltN = reverseCheck_listPointer_AltN;
 
 
 
@@ -4433,6 +4441,57 @@ bool Swr_Model::checkDuplication(size_t offset, std::vector<size_t> &listToAvoid
 			return true;
 	return false;
 };
+
+
+/*-------------------------------------------------------------------------------\
+|                             checkDuplication				                     |
+\-------------------------------------------------------------------------------*/
+bool Swr_Model::checkDuplication_Malt_recursion(size_t offset, std::vector<size_t> &listToAvoidDuplication, const uint8_t *buf, size_t size, size_t offset_Section2)
+{
+	//first, we try with only offset allready put in the list.
+	size_t nbElement = listToAvoidDuplication.size();
+	for (size_t i = 0; i < nbElement; i++)
+		if (listToAvoidDuplication.at(i) == offset)
+			return true;
+
+
+	//but now, we will make a new list with all Malt child offset.
+	std::vector<size_t> listChildOffset;
+	for (size_t i = 0; i < nbElement; i++)
+		listChildOffset.push_back(listToAvoidDuplication.at(i));
+
+	SWR_AltN_Header* hdr_AltN;
+	for (size_t i = 0; i < listChildOffset.size(); i++)
+	{
+		if (listChildOffset.at(i) == offset)
+			return true;
+
+		hdr_AltN = (SWR_AltN_Header*)(buf + listChildOffset.at(i));
+
+		if ((val32(hdr_AltN->flags) & 0x4000) && (val32(hdr_AltN->offset_Childs)))				// 0x5xxx or 0xDxxxx (for 0x3xxx the child are struct_V16)
+		{
+			size_t startoffset_Child_listOffset = val32(hdr_AltN->offset_Childs) + offset_Section2;
+			uint32_t* listOffsetAltN_Child = (uint32_t*)GetOffsetPtr(buf, startoffset_Child_listOffset, true);
+
+			size_t nbChilds = val32(hdr_AltN->nb_Childs);
+			size_t offset_tmp;
+			for (size_t k = 0; k < nbChilds; k++)
+			{
+				offset_tmp = val32(listOffsetAltN_Child[k]);
+				if (offset_tmp == 0)
+					continue;
+
+				listChildOffset.push_back(offset_tmp + offset_Section2);
+			}
+		}
+
+	}
+
+	return false;
+};
+
+
+
 
 
 }
