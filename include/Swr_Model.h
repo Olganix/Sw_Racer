@@ -232,19 +232,19 @@ struct SWR_MODEL_Section5		// struct_V19
 	uint16_t unk4;				// 4
 	uint16_t unk6;				// 6
 	uint16_t unk8[2];			// 8
-	uint8_t  unk12[4];			// C
-	uint16_t unk16;				// E
-	uint16_t unk18;				// 10
-	uint16_t unk20;				// 12
-	uint16_t unk22;				// 14
-	uint16_t unk24;				// 16
-	uint16_t unk26;				// 18
+	uint8_t  unk12;				// C
+	uint8_t  unk13;				// D
+	uint8_t  unk14[2];			// E
+	uint16_t unk16;				// 10
+	uint16_t unk18;				// 12
+	uint16_t unk20;				// 14
+	uint16_t unk22;				// 16
+	uint16_t unk24;				// 18
+	uint16_t unk26;				// 1A
 	uint32_t offset_Section5_b[5]; // 1C
 	uint32_t unk48;				// 30
 	uint32_t unk52;				// 34
-	uint8_t unk56;				// 38
-	uint8_t unk57;				// 39
-	uint16_t unk58;				// 3A
+	uint32_t textureMaskAndIndex;// 38	0xFF000000 for having the mask.
 	uint32_t unk60;				// 3C
 } PACKED;
 static_assert(sizeof(SWR_MODEL_Section5) == 0x40, "Incorrect structure size.");
@@ -333,13 +333,25 @@ struct SWR_MODEL_Section8		// struct_V47
 	
 	float unk24;				// 18
 	float unk28;				// 1C
-	uint32_t unk32;				// 20 not touched?
+	uint32_t offset_AltN;		// 20
 	uint16_t unk36;				// 24
 	uint16_t unk38;				// 26
 	uint32_t offset_next_section8; // 28
 } PACKED;
 static_assert(sizeof(SWR_MODEL_Section8) == 0x2C, "Incorrect structure size.");
 
+
+
+
+
+struct SWR_MODEL_Section40
+{
+	uint32_t unk0;				// 0
+	uint16_t unk1;				// 4
+	uint16_t unk2;				// 6
+	uint32_t unk3;				// 8
+} PACKED;
+static_assert(sizeof(SWR_MODEL_Section40) == 0xC, "Incorrect structure size.");
 
 
 
@@ -361,10 +373,7 @@ struct SWR_MODEL_Section48
 	uint8_t unk1;				// 1
 	uint8_t unk2;				// 2
 	uint8_t unk3;				// 3
-	uint8_t unk4;				// 4
-	uint8_t unk5;				// 5
-	uint8_t unk6;				// 6
-	uint8_t unk7;				// 7
+	uint32_t unk4;				// 4  //a kind of offset (over the current model)
 } PACKED;
 static_assert(sizeof(SWR_MODEL_Section48) == 0x8, "Incorrect structure size.");
 
@@ -373,20 +382,18 @@ static_assert(sizeof(SWR_MODEL_Section48) == 0x8, "Incorrect structure size.");
 
 
 
-struct SWR_MODEL_Section52
+struct SWR_MODEL_Section52		//Visual Geometry
 {
-	uint16_t unk0;				// 0
-	uint16_t unk2;				// 2
-	uint16_t unk4;				// 4
-	uint16_t unk6;				// 6
-	uint8_t unk8;				// 8
-	uint8_t unk9;				// 9
-	uint8_t unk10;				// A
-	uint8_t unk11;				// B
-	uint8_t unk12;				// C
-	uint8_t unk13;				// D
-	uint8_t unk14;				// E
-	uint8_t unk15;				// F
+	uint16_t posX;				// 0
+	uint16_t posY;				// 2
+	uint16_t posZ;				// 4
+	uint16_t unk_padding;		// 6
+	uint16_t uvU;				// 8
+	uint16_t uvV;				// A
+	uint8_t colorR;				// C		// normalDirectionX
+	uint8_t colorG;				// D		// normalDirectionY
+	uint8_t colorB;				// E		// normalDirectionZ
+	uint8_t colorA;				// F		//specular factor
 } PACKED;
 static_assert(sizeof(SWR_MODEL_Section52) == 0x10, "Incorrect structure size.");
 
@@ -508,7 +515,7 @@ public:
 
 	//debug version
 	void save_Xml(string filename, bool show_error = true);
-	void write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size);
+	void write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size, string filename);
 
 	void save_Coloration(string filename, bool show_error = false);		//create a file for wxHexEditor, for add tag and color on section of the file.
 	void write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_t size);
@@ -517,6 +524,7 @@ public:
 
 private:
 	bool checkDuplication(size_t offset, std::vector<size_t> &listToAvoidDuplication);
+	bool checkDuplication_Malt_recursion(size_t offset, std::vector<size_t> &listToAvoidDuplication, const uint8_t *buf, size_t size, size_t offset_Section2);
 };
 
 
