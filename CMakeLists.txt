@@ -10,6 +10,6 @@ include_directories(SYSTEM include)
 include_directories(SYSTEM ${TinyXML_INCLUDE_DIRS})
 link_libraries(${TinyXML_LIBRARIES})
 
-add_executable(Swr_XmlConverter tools/XmlConverter/main.cpp depends/half/half.cpp include/common.cpp include/EMO_BaseFile.cpp include/Swr_Model.cpp)
+add_executable(Swr_XmlConverter tools/XmlConverter/main.cpp depends/half/half.cpp src/common.cpp src/EMO_BaseFile.cpp src/Swr_Model.cpp include/Swr_Model.h)
 
-add_executable(Swr_WxHexEditorColorMaker tools/WxHexEditorColorMaker/main.cpp depends/half/half.cpp include/common.cpp include/EMO_BaseFile.cpp include/Swr_Model.cpp)
+add_executable(Swr_WxHexEditorColorMaker tools/WxHexEditorColorMaker/main.cpp depends/half/half.cpp src/common.cpp src/EMO_BaseFile.cpp src/Swr_Model.cpp include/Swr_Model.h)
