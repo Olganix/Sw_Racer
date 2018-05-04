@@ -1855,21 +1855,24 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 			TiXmlElement* node_Anim = new TiXmlElement("Anim");
 			node_listAnim->LinkEndChild(node_Anim);
 			
-			node = new TiXmlElement("unk0");
-			for(size_t j=0;j<61;j++)
-				node->SetAttribute(string("i_") + std::to_string(j), UnsignedToString(val32(hdr_anim->unk0[j]), true));
-			node_Anim->LinkEndChild(node);
+			
+			//node = new TiXmlElement("unk0");				//always 0, so don't care.
+			//for(size_t j=0;j<61;j++)
+			//	node->SetAttribute(string("i_") + std::to_string(j), UnsignedToString(val32(hdr_anim->unk0[j]), true));
+			//node_Anim->LinkEndChild(node);
+			
 
-			node = new TiXmlElement("unk1_X"); node->SetAttribute("float", FloatToString(val_float(hdr_anim->unk1_X))); node_Anim->LinkEndChild(node);
-			node = new TiXmlElement("unk1_Y"); node->SetAttribute("float", FloatToString(val_float(hdr_anim->unk1_Y))); node_Anim->LinkEndChild(node);
-			node = new TiXmlElement("unk1_Z"); node->SetAttribute("float", FloatToString(val_float(hdr_anim->unk1_Z))); node_Anim->LinkEndChild(node);
+			node = new TiXmlElement("unk1_0"); node->SetAttribute("float", FloatToString(val_float(hdr_anim->unk1_0))); node_Anim->LinkEndChild(node);
+			node = new TiXmlElement("unk1_1"); node->SetAttribute("float", FloatToString(val_float(hdr_anim->unk1_1))); node_Anim->LinkEndChild(node);
+			node = new TiXmlElement("unk1_2"); node->SetAttribute("float", FloatToString(val_float(hdr_anim->unk1_2))); node_Anim->LinkEndChild(node);
 			node = new TiXmlElement("unk2"); node->SetAttribute("u8", UnsignedToString(hdr_anim->unk2, true)); node_Anim->LinkEndChild(node);
 			node = new TiXmlElement("unk3"); node->SetAttribute("u8", UnsignedToString(hdr_anim->unk3, true)); node_Anim->LinkEndChild(node);
 			node = new TiXmlElement("unk4"); node->SetAttribute("u8", UnsignedToString(hdr_anim->unk4, true)); node_Anim->LinkEndChild(node);
-			node = new TiXmlElement("flags"); node->SetAttribute("u8", UnsignedToString(hdr_anim->flags, true)); node_Anim->LinkEndChild(node);
-			node = new TiXmlElement("unk5_X"); node->SetAttribute("float", FloatToString(val_float(hdr_anim->unk5_X))); node_Anim->LinkEndChild(node);
-			node = new TiXmlElement("unk5_Y"); node->SetAttribute("float", FloatToString(val_float(hdr_anim->unk5_Y))); node_Anim->LinkEndChild(node);
-			node = new TiXmlElement("unk5_Z"); node->SetAttribute("float", FloatToString(val_float(hdr_anim->unk5_Z))); node_Anim->LinkEndChild(node);
+			node = new TiXmlElement("flags_a"); node->SetAttribute("u4", UnsignedToString((hdr_anim->flags & 0xF0) >> 4, true)); node_Anim->LinkEndChild(node);
+			node = new TiXmlElement("flags_b"); node->SetAttribute("u4", UnsignedToString((hdr_anim->flags & 0x0F), true)); node_Anim->LinkEndChild(node);
+			node = new TiXmlElement("unk5_0"); node->SetAttribute("float", FloatToString(val_float(hdr_anim->unk5_0))); node_Anim->LinkEndChild(node);
+			node = new TiXmlElement("unk5_1"); node->SetAttribute("float", FloatToString(val_float(hdr_anim->unk5_1))); node_Anim->LinkEndChild(node);
+			node = new TiXmlElement("unk5_2"); node->SetAttribute("float", FloatToString(val_float(hdr_anim->unk5_2))); node_Anim->LinkEndChild(node);
 			node = new TiXmlElement("unk6"); node->SetAttribute("u32", UnsignedToString(val32(hdr_anim->unk6), true)); node_Anim->LinkEndChild(node);
 			node = new TiXmlElement("unk7"); node->SetAttribute("u32", UnsignedToString(val32(hdr_anim->unk7), true)); node_Anim->LinkEndChild(node);
 			node = new TiXmlElement("unk8"); node->SetAttribute("u32", UnsignedToString(val32(hdr_anim->unk8), true)); node_Anim->LinkEndChild(node);
@@ -2369,50 +2372,6 @@ void Swr_Model::write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_
 
 		//Todo after : take care of "Comp" Compressed
 		
-
-		/*
-		//test to color only the Texture
-		{
-			incSection++;
-			incParam = 0;
-
-			uint32_t* section2_u32 = (uint32_t*)GetOffsetPtr(buf, hdr->offset_Section2, true);
-
-			size_t nbUint32Section2 = sizeSection2 / 4;
-			size_t nbGroup32Uint32 = nbUint32Section2 / 32;
-			for (size_t i = 0; i < nbGroup32Uint32; i++)					//each bit of Section1 representing presence of Texture for one uint32_t of Section2
-			{
-				for (size_t j = 0; j < 31; j++)
-				{
-					if ((dataSection1.at(i) & (1 << (31 - j))) == 0)			//31 - j to begin on the left bit.
-						continue;
-
-					size_t index = i * 32 + j;
-
-					section2_u32[i] = val32(section2_u32[i]);
-
-					if ((val32(section2_u32[index]) & 0xFF000000) == 0x0A000000)
-					{
-						write_Coloration_Tag("Texture_A", "uint32_t", "", hdr->offset_Section2 + index * sizeof(uint32_t), sizeof(uint32_t), "Section1", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, index); offset += sizeof(uint32_t);
-
-						// Load texture
-						//setTextureHelper(nbUint32, data_ModelB_uint32[i] & 0x00FFFFFF, (char**)&data_ModelB_uint32[i], (int*)&data_ModelB_uint32[i + 1]);
-
-					}
-					else if (val32(section2_u32[index]) != 0x00000000) {
-
-						write_Coloration_Tag("Texture_ReUsed", "uint32_t", "", hdr->offset_Section2 + index * sizeof(uint32_t), sizeof(uint32_t), "Section1", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, index); offset += sizeof(uint32_t);
-
-						// Texture is already in memory, so point into an existing buffer ???
-						//data_ModelB_uint32[i] = (unsigned int)data_ModelB + data_ModelB_uint32[i];					// a utin32 informations from a size it become a endOffset adress.
-					}
-				}
-			}
-			continue;						//to test only the 
-		}
-		*/
-		
-
 
 		uint32_t* section2_u32 = (uint32_t*)GetOffsetPtr(buf, hdr->offset_Section2, true);
 	
@@ -3203,17 +3162,17 @@ void Swr_Model::write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_
 			hdr_anim->offset_AltN = val32(hdr_anim->offset_AltN);
 			
 			write_Coloration_Tag("unk0__0_To_60", "61 x uint32_t", "start of Anim. always 0", offset, 61 * sizeof(uint32_t), "SWR_Anim_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, inc_Anim); offset += 61 * sizeof(uint32_t);
-			write_Coloration_Tag("unk1_X", "float", "[0.0333329998, 240.0], 42.1666679 most. SOME the values offset is 0.0333, like if it's a diff time for 30 fps animations", offset, sizeof(float), "SWR_Anim_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, inc_Anim); offset += sizeof(float);
-			write_Coloration_Tag("unk1_Y", "float", "always the same value as unk1_X. it's a scale ? ", offset, sizeof(float), "SWR_Anim_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, inc_Anim); offset += sizeof(float);
-			write_Coloration_Tag("unk1_Z", "float", "always the same value as unk1_X. it's a scale ? ", offset, sizeof(float), "SWR_Anim_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, inc_Anim); offset += sizeof(float);
+			write_Coloration_Tag("unk1_0", "float", "[0.0333329998, 240.0], 42.1666679 most. SOME the values offset is 0.0333, like if it's a diff time for 30 fps animations. [JayFoxRox:] unk1_ and unk5_ : Something to do with playback length; NOT a XYZ vector ", offset, sizeof(float), "SWR_Anim_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, inc_Anim); offset += sizeof(float);
+			write_Coloration_Tag("unk1_1", "float", "always the same value as unk1_X. it's a scale ? ", offset, sizeof(float), "SWR_Anim_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, inc_Anim); offset += sizeof(float);
+			write_Coloration_Tag("unk1_2", "float", "always the same value as unk1_X. it's a scale ? ", offset, sizeof(float), "SWR_Anim_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, inc_Anim); offset += sizeof(float);
 			write_Coloration_Tag("unk2", "uint8_t", "always 11.", offset, sizeof(uint8_t), "SWR_Anim_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, inc_Anim); offset += sizeof(uint8_t);
 			write_Coloration_Tag("unk3", "uint8_t", "always 0.", offset, sizeof(uint8_t), "SWR_Anim_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, inc_Anim); offset += sizeof(uint8_t);
 			write_Coloration_Tag("unk4", "uint8_t", "0 (most), 0x10", offset, sizeof(uint8_t), "SWR_Anim_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, inc_Anim); offset += sizeof(uint8_t);
 			write_Coloration_Tag("flags", "uint8_t", " with mask 0x0F, give the number of Components: 1, 0xB or 0xC => 1 component;  4 => 2 comp; 7, 9 or 0xA => 3 comp; 6 or 8 (most) => 4 comp;   5 => strange values instead of offset of values and objects.     0x12 give something strange.   with filter 0xF0, we have 0, 1, 2, or 3(most).", offset, sizeof(uint8_t), "SWR_Anim_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, inc_Anim); offset += sizeof(uint8_t);
 			write_Coloration_Tag("nbKeyFrames", "uint32_t", "", offset, sizeof(uint32_t), "SWR_Anim_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, inc_Anim); offset += sizeof(uint32_t);
-			write_Coloration_Tag("unk5_X", "float", "[0.0333329998, 240.0], 42.1666679 most. LOTS OF values offset is 0.0333, like if it's a diff time for 30 fps animations", offset, sizeof(float), "SWR_Anim_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, inc_Anim); offset += sizeof(float);
-			write_Coloration_Tag("unk5_Y", "float", "always the same value as unk1_X.", offset, sizeof(float), "SWR_Anim_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, inc_Anim); offset += sizeof(float);
-			write_Coloration_Tag("unk5_Z", "float", "always 1.0", offset, sizeof(float), "SWR_Anim_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, inc_Anim); offset += sizeof(float);
+			write_Coloration_Tag("unk5_0", "float", "[0.0333329998, 240.0], 42.1666679 most. LOTS OF values offset is 0.0333, like if it's a diff time for 30 fps animations", offset, sizeof(float), "SWR_Anim_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, inc_Anim); offset += sizeof(float);
+			write_Coloration_Tag("unk5_1", "float", "always the same value as unk1_X.", offset, sizeof(float), "SWR_Anim_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, inc_Anim); offset += sizeof(float);
+			write_Coloration_Tag("unk5_2", "float", "always 1.0. [JayFoxRox:] Maybe playback rate / speed?", offset, sizeof(float), "SWR_Anim_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, inc_Anim); offset += sizeof(float);
 			write_Coloration_Tag("unk6", "uint32_t", "always 0", offset, sizeof(uint32_t), "SWR_Anim_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, inc_Anim); offset += sizeof(uint32_t);
 			write_Coloration_Tag("unk7", "uint32_t", "always 0", offset, sizeof(uint32_t), "SWR_Anim_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, inc_Anim); offset += sizeof(uint32_t);
 			isTextureArray.at(offset) = false;

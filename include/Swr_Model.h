@@ -250,6 +250,7 @@ struct SWR_MODEL_Section5		// struct_V19
 static_assert(sizeof(SWR_MODEL_Section5) == 0x40, "Incorrect structure size.");
 
 
+
 struct SWR_MODEL_Section5_b
 {
 	uint16_t unk0;				// 0
@@ -264,6 +265,91 @@ struct SWR_MODEL_Section5_b
 	uint16_t unk14;				// E
 } PACKED;
 static_assert(sizeof(SWR_MODEL_Section5_b) == 0x10, "Incorrect structure size.");
+
+/* ///////////////////////////////// JayFoxRox about texture and Section5.
+
+
+a1 = SWR_MODEL_Section5.unk12 and
+a2 = SWR_MODEL_Section5.unk13
+a1	a2	Storage	Format
+0	3	A4R4G4B4	A8R8G8B8 from file ?
+5	1	A4R4G4B4	A8 from file, RGB = 0xFFF
+5	3	A4R4G4B4	A4R4G4B4 from file ?
+4		A4R4G4B4	FIXME
+4	0	A4R4G4B4	Read 4 bit and duplicate in all channels
+3	0	A4R4G4B4	A4 from file, RGB = 0xFFF
+A1R5G5B5	(Any other format than those listed above)
+2	0	A1R5G5B5	Loaded as A1R5G5B5 from file using I4 palette ?
+2	1	A1R5G5B5	Loaded as A1R5G5B5 from file ?
+5	2	A1R5G5B5	R5G5B5 from file, A = 0x1
+5	7	A1R5G5B5	R5 from file, GB = 0xFF A = 0x1 ? ? ? ? unsure
+THIS LIST IS INCOMPLETE, I BELIEVE THERE ARE AT LEAST 2 MORE FORMATS MISSING
+
+This is based on ongoing research in https://github.com/OpenSWE1R/swe1r-re/pull/12
+
+---------------------------------------------------------
+
+
+//I found that it's addressed relative in the texture loader:
+struct A1Unk
+{
+	uint8_t unk_pad0[3];			// +0
+	uint8_t unk3;					// +3
+};
+struct A1							// Probably part of the model structure
+{
+	uint8_t unk_pad_neg56[12];		// -56 (-14*4) // 0x0
+	uint8_t unk_neg44;				// -44 (-14*4 + 12) // 0xC
+	uint8_t unk_neg43;				// -43 (-14*4 + 13) // 0xD
+	uint8_t unk_pad_neg42[2];		// -42 // 0xE
+	uint16_t unk_neg40;				// -40 // 0x10
+	uint16_t unk_neg38;				// -38 // 0x12
+	uint8_t unk_pad_neg36[8];		// -36 // 0x14
+	A1Unk* unk_neg28;				// -28 (-14*4 + 28) //  0x1C
+	uint8_t unk_pad_neg24[24];		// -24 // 0x20
+	void* texture_data;				// 0 [a1 points here] // 0x38
+	void* optional_texture_data;	// 4 [a2 should point here] // 0x3C
+}; 
+
+//How it is used in the texture loader :
+uint16_t v4 = swap16(a1->unk_neg40);
+
+if (a1->unk_neg28)
+{
+	uint16_t v3 = swap16(a1->unk_neg38);
+
+	// Get width and height as POT
+	int v6 = sub_445C90(v4);
+	int v7 = sub_445C90(v3);
+
+	// Process texture data
+	sub_445EE0(
+		a1->unk_neg44, // ?
+		a1->unk_neg43, // ?
+		v4, // NPOT Width
+		v3, // NPOT Height
+		v6, // POT Width
+		v7, // POT Height
+		_a1, // Texture data
+		_a2, // Optional texture data
+		1, // ?
+		a1->unk_neg28->unk3); // ?
+}
+
+//The new research reveals the following:
+//-Section5.offset_Section5_b[0] = Must exist or texture data will not be parsed correctly(? )
+//-Section5.offset_Section5_b[0]->unk3 = Flags of some sort, only 0x10 and 0x01 are used.They seem to double the resolution vertically and horizontally(maybe to mirror / unfold textures while loading ? ).
+//-Section5.unk16 = NPOT Width
+//-Section5.unk18 = NPOT Height
+//-Section5.unk12[0] = Something to do with texture, seems to control pixel format
+//-Section5.unk12[1] = Something to do with texture, seems to control pixel format
+//-Section5.textureMaskAndIndex = Index to texture and pointer to pixel data(section a) at load - time(unsure: might be replaced with other data later)
+//-Section5.unk60 = Pointer to pixel data(section b) at load - time, presumably garbage if b == 0 (unsure: might be replaced with other data later)
+//-(Where section a and b refer to the first and second section in the out_textureblock table)
+
+//////////////////////////////////*/
+
+
 
 
 
@@ -407,18 +493,18 @@ static_assert(sizeof(SWR_MODEL_Section52) == 0x10, "Incorrect structure size.");
 
 struct SWR_Anim_Header
 {
-	uint32_t unk0[61];			// 0	//always 0 ?
-	float unk1_X;				// F4
-	float unk1_Y;				// F8
-	float unk1_Z;				// FC
+	uint32_t unk0[61];			// 0	//always 0
+	float unk1_0;				// F4
+	float unk1_1;				// F8
+	float unk1_2;				// FC
 	uint8_t unk2;				// 100
 	uint8_t unk3;				// 101
 	uint8_t unk4;				// 102
 	uint8_t flags;				// 103	// 1, B or C => 1 component;  4 => 2 comp; 7, 9 or A => 3 comp; 6 or 8 => 4 comp;
 	uint32_t nbKeyFrames;		// 104
-	float unk5_X;				// 108
-	float unk5_Y;				// 10C
-	float unk5_Z;				// 110
+	float unk5_0;				// 108
+	float unk5_1;				// 10C
+	float unk5_2;				// 110
 	uint32_t unk6;				// 114
 	uint32_t unk7;				// 118
 	uint32_t offset_times;		// 11C
