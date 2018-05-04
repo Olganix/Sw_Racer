@@ -1160,7 +1160,8 @@ void Swr_Model::save_Xml(string filename, bool show_error)
 \-------------------------------------------------------------------------------*/
 void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size, LibXenoverse::EMD* emd, LibXenoverse::EMM* emm, LibXenoverse::ESK* esk, LibXenoverse::EAN* ean, LibXenoverse::EMD* emd_collision)
 {
-	bool XMLTEST_SoKeepSmaller = true;
+	bool XMLTEST_SoKeepSmaller = false;
+	bool XMLTEST_UseHierarchy = true;
 
 
 	big_endian = true;
@@ -1405,7 +1406,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 		for (size_t j = 0; j < nbMalt_tmp; j++)								//check all references, previously gived.
 		{
 			if (!checkDuplication_Malt_recursion(listPointer_AltN.at(j), reverseCheck_listPointer_AltN, buf, size, hdr->offset_Section2))
-				reverseCheck_listPointer_AltN.push_back(offset);
+				reverseCheck_listPointer_AltN.push_back(listPointer_AltN.at(j));
 		}
 		listPointer_AltN = reverseCheck_listPointer_AltN;
 
@@ -1450,6 +1451,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 			listRecusiveAltN.push_back(offset);
 			std::vector<EskTreeNode*> listRecusiveAltN_ParentBone;
 			listRecusiveAltN_ParentBone.push_back(eskModelNode);
+			std::vector<TiXmlElement*> listRecusiveAltN_Xml;
+			listRecusiveAltN_Xml.push_back(node_listMalt);
 
 
 			for (size_t j = 0; j<listRecusiveAltN.size(); j++)
@@ -1475,11 +1478,15 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 				TiXmlElement* node_Malt = new TiXmlElement("Malt_Node");
 				//if (!XMLTEST_SoKeepSmaller)
+				{
 					node_Malt->SetAttribute("startOffset_id", UnsignedToString(offset, true));
+					node_Malt->SetAttribute("uniqueName", (emd->name + "_" + std::to_string(i) + "__" + uniqueId_str));
+				}
+
 				//if (!XMLTEST_SoKeepSmaller)
-				node_listMalt->LinkEndChild(node_Malt);
+					listRecusiveAltN_Xml.at(j)->LinkEndChild(node_Malt);
 
-
+				
 				
 				SWR_AltN_Header* hdr_AltN = (SWR_AltN_Header*)GetOffsetPtr(buf, offset, true);
 				hdr_AltN->flags = val32(hdr_AltN->flags);
@@ -1662,7 +1669,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 								numberTotal += nbVertexTmp;
 								numberTotal_b += nbVertexTmp;
 								if((nbVertexTmp > 32) && (section3->nbElementV52 != 0))
-									numberTotal_b += 2 * (nbVertexTmp / 32);
+									//numberTotal_b += 2 * (nbVertexTmp / 32);
+									numberTotal_b += 2 * (size_t)round(nbVertexTmp / 32.0);						//round it's a no-sense, but it's the case of Model 177: 364 vertex, and only one group with 342. adding +2 each 32, give 362. 342 / 32 = 10.6875. and it's can't be 16 instead 32, because lots of group under 32, and up to 16 is not concerned. or may be, 16  begin after first 32. ... but strange.
 
 								node = new TiXmlElement("Group"); 
 								node->SetAttribute("index", m);
@@ -1674,9 +1682,9 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 								offset += sizeof(uint32_t);
 							}
 
-							if( ((section3->nbElementV52!=0) && (numberTotal_b != section3->nbElementV52)) || ((section3->nbElementV44 != 0) && (numberTotal_b != section3->nbElementV44)) )
+							if( ((section3->nbElementV52!=0) && (numberTotal_b != section3->nbElementV52)) || ((section3->nbElementV52 == 0) && (section3->nbElementV44 != 0) && (numberTotal_b != section3->nbElementV44)) )
 							{
-								printf((string("Error of hyp (in case section3->offset_V90!=0, typeMode %i): the ")+ ((section3->nbElementV52!=0) ? "section3->nbElementV52" : "section3->nbElementV44") +" != sum of all group (%i != %i).\n").c_str(), section3->typeMode, (section3->nbElementV52) ? section3->nbElementV52 : section3->nbElementV44, numberTotal_b);
+								printf((string("Error of hyp (in case section3->offset_V90!=0, typeMode %i): the ")+ ((section3->nbElementV52!=0) ? "section3->nbElementV52" : "section3->nbElementV44") +" != sum of all group (%i != %i).\n").c_str(), section3->typeMode, (section3->nbElementV52!=0) ? section3->nbElementV52 : section3->nbElementV44, numberTotal_b);
 								LibXenoverse::notifyError();
 							}
 						}
@@ -1772,14 +1780,16 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 							{
 								if ((section3->nbElementV52 / nbGroup) * nbGroup != section3->nbElementV52)
 								{
-									printf("Error of hyp (in case section3->offset_V90==0): the section3->nbElementV52 / nbGroup (%i/%i) is not a integer. \n", section3->nbElementV52, nbGroup);
-									LibXenoverse::notifyError();
+									printf("Warning of hyp (in case section3->offset_V90==0): the section3->nbElementV52 / nbGroup (%i/%i) is not a integer. using nbGroup = 1\n", section3->nbElementV52, nbGroup);
+									LibXenoverse::notifyWarning();
+									nbGroup = 1;
 								}
 
 								if ((section3->typeMode != 5) && ((section3->nbElementV52 / nbGroup) % section3->typeMode != 0))
 								{
-									printf("Error of hyp (in case section3->offset_V90==0, typeMode %i): the section3->nbElementV52 / nbGroup (%i / %i = %i) is not a modulo of %i. \n", section3->typeMode, section3->nbElementV52, nbGroup, section3->nbElementV52 / nbGroup, section3->typeMode);
-									LibXenoverse::notifyError();
+									printf("Warning of hyp (in case section3->offset_V90==0, typeMode %i): the section3->nbElementV52 / nbGroup (%i / %i = %i) is not a modulo of %i. using nbGroup = 1\n", section3->typeMode, section3->nbElementV52, nbGroup, section3->nbElementV52 / nbGroup, section3->typeMode);
+									LibXenoverse::notifyWarning();
+									nbGroup = 1;
 								}
 							}
 
@@ -1791,8 +1801,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 								if ((section3->typeMode != 5) && ((nbVertex) % section3->typeMode != 0))
 								{
-									printf((string("Error of hyp (in case  section3->offset_V90") + ((listNbElementsByGroup) ? "!=" : "==") + "0, typeMode %i): the nbVertex = %i is not a modulo of %i. \n").c_str(), section3->typeMode, nbVertex, section3->typeMode);
-									LibXenoverse::notifyError();
+									printf((string("Warning of hyp (in case  section3->offset_V90") + ((listNbElementsByGroup) ? "!=" : "==") + "0, typeMode %i): the nbVertex = %i is not a modulo of %i. \n").c_str(), section3->typeMode, nbVertex, section3->typeMode);
+									LibXenoverse::notifyWarning();
 								}
 
 								EMDTriangles emdTriangle;
@@ -1824,7 +1834,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 
 									if(nbVertex > 32)					//I notify some artefacts on stage meshes, and also sometime, the sum of nbvertex into V90 list is not equal with nbSection52.
-										nbVertex += 2 * (nbVertex / 32);	//apparently it's about passing each 32 vertex.
+										//nbVertex += 2 * (nbVertex / 32);	//apparently it's about passing each 32 vertex. 
+										nbVertex += 2 * (size_t)round(nbVertex / 32.0);	//apparently it's about passing each 32 vertex. //round it's a no-sense, but it's the case of Model 177: 364 vertex, and only one group with 342. adding +2 each 32, give 362. 342 / 32 = 10.6875. and it's can't be 16 instead 32, because lots of group under 32, and up to 16 is not concerned. or may be, 16  begin after first 32. ... but strange.
 
 									for (size_t n = 0; n + 2 < nbVertex; n++)
 									{
@@ -1963,8 +1974,9 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 								if ((section3->typeMode != 5) && ((section3->nbElementV44 / nbGroup) % section3->typeMode != 0))
 								{
-									printf("Error of hyp (in case Sect44,section3->offset_V90==0, typeMode %i): the section3->nbElementV44 / nbGroup (%i / %i = %i) is not a modulo of %i. \n", section3->typeMode, section3->nbElementV44, nbGroup, section3->nbElementV44 / nbGroup, section3->typeMode);
-									LibXenoverse::notifyError();
+									printf("Warning of hyp (in case Sect44,section3->offset_V90==0, typeMode %i): the section3->nbElementV44 / nbGroup (%i / %i = %i) is not a modulo of %i. using nbGroup=1.\n", section3->typeMode, section3->nbElementV44, nbGroup, section3->nbElementV44 / nbGroup, section3->typeMode);
+									LibXenoverse::notifyWarning();
+									nbGroup = 1;
 								}
 							}
 
@@ -2067,6 +2079,39 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						}
 
 
+						size_t incSection48 = 0;
+						if (section3->offset_unk48)
+						{
+							size_t startoffset_section48 = section3->offset_unk48 + hdr->offset_Section2;
+							offset = startoffset_section48;
+
+							SWR_MODEL_Section48* section48 = (SWR_MODEL_Section48*)GetOffsetPtr(buf, offset, true);
+
+							TiXmlElement* node_section48 = new TiXmlElement("Section48");
+							node_section48->SetAttribute("startOffset", UnsignedToString(startoffset_section48, true));
+							//if (!XMLTEST_SoKeepSmaller)
+							node_section3->LinkEndChild(node_section48);
+
+							incSection48 = 0;
+							while (section48->unk0 != 0xDF)
+							{
+								node = new TiXmlElement("Value");
+								node->SetAttribute("unk0", UnsignedToString(section48->unk0, true));
+								node->SetAttribute("unk1", UnsignedToString(section48->unk1, true));
+								node->SetAttribute("unk2", UnsignedToString(section48->unk2, true));
+								node->SetAttribute("unk3", UnsignedToString(section48->unk3, true));
+								node->SetAttribute("unk4", UnsignedToString(val32(section48->unk4), true));
+								node_section48->LinkEndChild(node);
+
+								offset += sizeof(SWR_MODEL_Section48);
+								section48++;
+								incSection48++;
+							}
+							offset += 2 * sizeof(uint32_t);
+
+							node_section48->SetAttribute("debugNbElements", incSection48);
+						}
+
 
 						if (section3->offset_unk40)
 						{
@@ -2085,6 +2130,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 							node = new TiXmlElement("unk2"); node->SetAttribute("u16", UnsignedToString(val16(section40->unk2), true)); node_section40->LinkEndChild(node);
 							node = new TiXmlElement("unk3"); node->SetAttribute("u32", UnsignedToString(val32(section40->unk3), true)); node_section40->LinkEndChild(node);
 						}
+
+
 
 
 
@@ -2364,38 +2411,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 
 
-						size_t incSection48 = 0;
-						if (section3->offset_unk48)
-						{
-							size_t startoffset_section48 = section3->offset_unk48 + hdr->offset_Section2;
-							offset = startoffset_section48;
-
-							SWR_MODEL_Section48* section48 = (SWR_MODEL_Section48*)GetOffsetPtr(buf, offset, true);
-
-							TiXmlElement* node_section48 = new TiXmlElement("Section48");
-							node_section48->SetAttribute("startOffset", UnsignedToString(startoffset_section48, true));
-							//if (!XMLTEST_SoKeepSmaller)
-								node_section3->LinkEndChild(node_section48);
-
-							incSection48 = 0;
-							while (section48->unk0 != 0xDF)
-							{
-								node = new TiXmlElement("Value");
-								node->SetAttribute("unk0", UnsignedToString(section48->unk0, true));
-								node->SetAttribute("unk1", UnsignedToString(section48->unk1, true));
-								node->SetAttribute("unk2", UnsignedToString(section48->unk2, true));
-								node->SetAttribute("unk3", UnsignedToString(section48->unk3, true));
-								node->SetAttribute("unk4", UnsignedToString(val32(section48->unk4), true));
-								node_section48->LinkEndChild(node);
-
-								offset += sizeof(SWR_MODEL_Section48);
-								section48++;
-								incSection48++;
-							}
-							offset += 2 * sizeof(uint32_t);
-
-							node_section48->SetAttribute("debugNbElements", incSection48);
-						}
+						
 
 
 
@@ -2663,10 +2679,15 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						if (listOffsetAltN_Child[k] == 0)
 							continue;
 
-						node = new TiXmlElement("Child"); node->SetAttribute("offset", UnsignedToString(val32(listOffsetAltN_Child[k]) + hdr->offset_Section2, true)); node_section->LinkEndChild(node);
-
 						listRecusiveAltN.push_back(val32(listOffsetAltN_Child[k]) + hdr->offset_Section2);
 						listRecusiveAltN_ParentBone.push_back(eskNode);
+						if (XMLTEST_UseHierarchy)
+						{
+							listRecusiveAltN_Xml.push_back(node_section);						//to have hierarchy.
+						}else {
+							node = new TiXmlElement("Child"); node->SetAttribute("offset", UnsignedToString(val32(listOffsetAltN_Child[k]) + hdr->offset_Section2, true)); node_section->LinkEndChild(node);
+							listRecusiveAltN_Xml.push_back(node_listMalt);						//better for analyze value
+						}
 					}
 				}
 
