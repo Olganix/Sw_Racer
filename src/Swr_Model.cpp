@@ -1733,8 +1733,11 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 								node->SetAttribute("z", FloatToString((float)(int16_t)val16(section52->posZ)));
 								node = new TiXmlElement("Uv");
 								node_section52->LinkEndChild(node);
-								node->SetAttribute("u", FloatToString(((float)val16(section52->uvU)) / 65535.0f));
-								node->SetAttribute("v", FloatToString(((float)val16(section52->uvV)) / 65535.0f));
+								//FIXME: Might be `uv / 0xFFFF * 16.0f` instead
+								float u = (int16_t)val16(section52->uvU) / (float)0xFFF;
+								float v = (int16_t)val16(section52->uvV) / (float)0xFFF;
+								node->SetAttribute("u", FloatToString(u));
+								node->SetAttribute("v", FloatToString(v));
 								node = new TiXmlElement("Color");
 								node_section52->LinkEndChild(node);
 								node->SetAttribute("r", FloatToString((float)section52->colorR / 255.0f));
@@ -1750,9 +1753,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 								vertex.pos_x = (float)(int16_t)val16(section52->posX);
 								vertex.pos_y = (float)(int16_t)val16(section52->posY);
 								vertex.pos_z = (float)(int16_t)val16(section52->posZ);
-								vertex.text_u = (int16_t)val16(section52->uvU) / (float)0xFFF;
-								vertex.text_v = (int16_t)val16(section52->uvV) / (float)0xFFF;
-
+								vertex.text_u = u;
+								vertex.text_v = v;
 								//in reality ColorRGB give the look like of normal directions, and ColorA look like specular.
 								vertex.color = (section52->colorR << 24) + (section52->colorG << 16) + (section52->colorB << 8) + section52->colorA;
 								listVertex.push_back(vertex);
@@ -1812,14 +1814,14 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 									for (size_t n = 0; n + 3 < nbVertex; n += 4)					//test case diagonale come from 0 to 2 (1 and 3 are neighbour of 0) => diagonal is good.
 									{
 										//triangle A
-										emdTriangle.faces.push_back(incVertex + n);
 										emdTriangle.faces.push_back(incVertex + n + 1);
 										emdTriangle.faces.push_back(incVertex + n + 2);
+										emdTriangle.faces.push_back(incVertex + n + 3);
 
 										//triangle B
-										emdTriangle.faces.push_back(incVertex + n);
-										emdTriangle.faces.push_back(incVertex + n + 2);
 										emdTriangle.faces.push_back(incVertex + n + 3);
+										emdTriangle.faces.push_back(incVertex + n + 0);
+										emdTriangle.faces.push_back(incVertex + n + 1);
 									}
 
 								}else {									//case 5 : triangle strip  https://en.wikipedia.org/wiki/Triangle_strip
@@ -2097,7 +2099,6 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 								materialName = "Mat_" + UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, true);
 								collada->addTextureMaterial(materialName, "texture_"+ UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, true) +".png");
 								collada_collision->addTextureMaterial(materialName, "texture_" + UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, true) + ".png");
-								
 
 								/*
 								if (emdSubMesh)
