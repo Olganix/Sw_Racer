@@ -721,7 +721,7 @@ public:
 
 	//debug version
 	void save_Xml(string filename, bool show_error = true);
-	void write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size, string filename, Collada* collada);
+	void write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size, string filename, Collada* collada, Collada* collada_collision);
 
 	void save_Coloration(string filename, bool show_error = false);		//create a file for wxHexEditor, for add tag and color on section of the file.
 	void write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_t size);

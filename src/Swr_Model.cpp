@@ -221,7 +221,14 @@ Collada::Collada()
 void Collada::addGeometry(string name, std::vector<EMDVertex> &vertices, std::vector<EMDTriangles> &triangles, string materialName)
 {
 	size_t nbVertex = vertices.size();
+	if (nbVertex == 0)
+		return;
+
 	string str = "";
+
+	bool havePosition = vertices.at(0).flags & EMD_VTX_FLAG_POS;
+	bool haveUv = vertices.at(0).flags & EMD_VTX_FLAG_TEX;
+	bool haveColor = vertices.at(0).flags & EMD_VTX_FLAG_COLOR;
 
 	TiXmlElement* node_geometry = new TiXmlElement("geometry");
 	node_geometries->LinkEndChild(node_geometry);
@@ -231,50 +238,51 @@ void Collada::addGeometry(string name, std::vector<EMDVertex> &vertices, std::ve
 	TiXmlElement* node_mesh = new TiXmlElement("mesh");
 	node_geometry->LinkEndChild(node_mesh);
 
-
-	TiXmlElement* node_source = new TiXmlElement("source");
-	node_mesh->LinkEndChild(node_source);
-	node_source->SetAttribute("id", name +"_positions");
-	node_source->SetAttribute("name", name + "_positions");
-
-	TiXmlElement* node_listFloat = new TiXmlElement("float_array");
-	node_source->LinkEndChild(node_listFloat);
-	node_listFloat->SetAttribute("id", name +"_positions_floats");
-	node_listFloat->SetAttribute("count", nbVertex * 3);
-	str = "";
-	for (size_t i = 0; i < nbVertex; i++)
+	if (havePosition)
 	{
-		str += ((i == 0) ? "" : " ") + EMO_BaseFile::FloatToString(vertices.at(i).pos_x);
-		str +=					" "	 + EMO_BaseFile::FloatToString(vertices.at(i).pos_y);
-		str +=					" "  + EMO_BaseFile::FloatToString(vertices.at(i).pos_z);
+		TiXmlElement* node_source = new TiXmlElement("source");
+		node_mesh->LinkEndChild(node_source);
+		node_source->SetAttribute("id", name + "_positions");
+		node_source->SetAttribute("name", name + "_positions");
+
+		TiXmlElement* node_listFloat = new TiXmlElement("float_array");
+		node_source->LinkEndChild(node_listFloat);
+		node_listFloat->SetAttribute("id", name + "_positions_floats");
+		node_listFloat->SetAttribute("count", nbVertex * 3);
+		str = "";
+		for (size_t i = 0; i < nbVertex; i++)
+		{
+			str += ((i == 0) ? "" : " ") + EMO_BaseFile::FloatToString(vertices.at(i).pos_x);
+			str += " " + EMO_BaseFile::FloatToString(vertices.at(i).pos_y);
+			str += " " + EMO_BaseFile::FloatToString(vertices.at(i).pos_z);
+		}
+		node_listFloat->LinkEndChild(new TiXmlText(str));
+
+		TiXmlElement* node_technique_common = new TiXmlElement("technique_common");
+		node_source->LinkEndChild(node_technique_common);
+
+		TiXmlElement* node_accessor = new TiXmlElement("accessor");
+		node_technique_common->LinkEndChild(node_accessor);
+		node_accessor->SetAttribute("count", nbVertex);
+		node_accessor->SetAttribute("offset", "0");
+		node_accessor->SetAttribute("source", "#" + name + "_positions_floats");
+		node_accessor->SetAttribute("stride", "3");
+
+		TiXmlElement* node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "X");
+		node_param->SetAttribute("type", "float");
+
+		node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "Y");
+		node_param->SetAttribute("type", "float");
+
+		node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "Z");
+		node_param->SetAttribute("type", "float");
 	}
-	node_listFloat->LinkEndChild(new TiXmlText(str));
-
-	TiXmlElement* node_technique_common = new TiXmlElement("technique_common");
-	node_source->LinkEndChild(node_technique_common);
-
-	TiXmlElement* node_accessor = new TiXmlElement("accessor");
-	node_technique_common->LinkEndChild(node_accessor);
-	node_accessor->SetAttribute("count", nbVertex);
-	node_accessor->SetAttribute("offset", "0");
-	node_accessor->SetAttribute("source", "#"+ name + "_positions_floats");
-	node_accessor->SetAttribute("stride", "3");
-
-	TiXmlElement* node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "X");
-	node_param->SetAttribute("type", "float");
-
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "Y");
-	node_param->SetAttribute("type", "float");
-
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "Z");
-	node_param->SetAttribute("type", "float");
-
 
 
 	/*/////////////////////////////////////////////////////
@@ -319,96 +327,102 @@ void Collada::addGeometry(string name, std::vector<EMDVertex> &vertices, std::ve
 
 	/////////////////////////////////////////////////////*/
 
-	node_source = new TiXmlElement("source");
-	node_mesh->LinkEndChild(node_source);
-	node_source->SetAttribute("id", name + "_uv");
-	node_source->SetAttribute("name", name + "_uv");
-
-	node_listFloat = new TiXmlElement("float_array");
-	node_source->LinkEndChild(node_listFloat);
-	node_listFloat->SetAttribute("id", name + "_uv_floats");
-	node_listFloat->SetAttribute("count", nbVertex * 2);
-	str = "";
-	for (size_t i = 0; i < nbVertex; i++)
+	if (haveUv)
 	{
-		str += ((i == 0) ? "" : " ") + EMO_BaseFile::FloatToString(vertices.at(i).text_u);
-		str += " " + EMO_BaseFile::FloatToString(vertices.at(i).text_v);
+		TiXmlElement* node_source = new TiXmlElement("source");
+		node_mesh->LinkEndChild(node_source);
+		node_source->SetAttribute("id", name + "_uv");
+		node_source->SetAttribute("name", name + "_uv");
+
+		TiXmlElement* node_listFloat = new TiXmlElement("float_array");
+		node_source->LinkEndChild(node_listFloat);
+		node_listFloat->SetAttribute("id", name + "_uv_floats");
+		node_listFloat->SetAttribute("count", nbVertex * 2);
+		str = "";
+		for (size_t i = 0; i < nbVertex; i++)
+		{
+			str += ((i == 0) ? "" : " ") + EMO_BaseFile::FloatToString(vertices.at(i).text_u);
+			str += " " + EMO_BaseFile::FloatToString(vertices.at(i).text_v);
+		}
+		node_listFloat->LinkEndChild(new TiXmlText(str));
+
+		TiXmlElement* node_technique_common = new TiXmlElement("technique_common");
+		node_source->LinkEndChild(node_technique_common);
+
+		TiXmlElement* node_accessor = new TiXmlElement("accessor");
+		node_technique_common->LinkEndChild(node_accessor);
+		node_accessor->SetAttribute("count", nbVertex);
+		node_accessor->SetAttribute("offset", "0");
+		node_accessor->SetAttribute("source", "#" + name + "_uv");
+		//node_accessor->SetAttribute("stride", "3");
+		node_accessor->SetAttribute("stride", "2");
+
+		TiXmlElement* node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "S");
+		node_param->SetAttribute("type", "float");
+
+		node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "T");
+		node_param->SetAttribute("type", "float");
+
+		/*
+		node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "P");
+		node_param->SetAttribute("type", "float");
+		*/
 	}
-	node_listFloat->LinkEndChild(new TiXmlText(str));
-
-	node_technique_common = new TiXmlElement("technique_common");
-	node_source->LinkEndChild(node_technique_common);
-
-	node_accessor = new TiXmlElement("accessor");
-	node_technique_common->LinkEndChild(node_accessor);
-	node_accessor->SetAttribute("count", nbVertex);
-	node_accessor->SetAttribute("offset", "0");
-	node_accessor->SetAttribute("source", "#"+ name + "_uv");
-	//node_accessor->SetAttribute("stride", "3");
-	node_accessor->SetAttribute("stride", "2");
-
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "S");
-	node_param->SetAttribute("type", "float");
-
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "T");
-	node_param->SetAttribute("type", "float");
-
-	/*
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "P");
-	node_param->SetAttribute("type", "float");
-	*/
 
 	/////////////////////////////////////////////////////
 
-	node_source = new TiXmlElement("source");
-	node_mesh->LinkEndChild(node_source);
-	node_source->SetAttribute("id", name + "_color");
-	node_source->SetAttribute("name", name + "_color");
+	if (haveColor)
+	{
+		TiXmlElement* node_source = new TiXmlElement("source");
+		node_mesh->LinkEndChild(node_source);
+		node_source->SetAttribute("id", name + "_color");
+		node_source->SetAttribute("name", name + "_color");
 
-	node_listFloat = new TiXmlElement("float_array");
-	node_source->LinkEndChild(node_listFloat);
-	node_listFloat->SetAttribute("id", name + "_color_floats");
-	node_listFloat->SetAttribute("count", nbVertex * 4);
-	str = "";
-	for (size_t i = 0; i < nbVertex; i++)
-		str += ((i == 0) ? "" : " ") + vertices.at(i).getColorFromRGBA_str();
-	node_listFloat->LinkEndChild(new TiXmlText(str));
+		TiXmlElement* node_listFloat = new TiXmlElement("float_array");
+		node_source->LinkEndChild(node_listFloat);
+		node_listFloat->SetAttribute("id", name + "_color_floats");
+		node_listFloat->SetAttribute("count", nbVertex * 4);
+		str = "";
+		for (size_t i = 0; i < nbVertex; i++)
+			str += ((i == 0) ? "" : " ") + vertices.at(i).getColorFromRGBA_str();
+		node_listFloat->LinkEndChild(new TiXmlText(str));
 
-	node_technique_common = new TiXmlElement("technique_common");
-	node_source->LinkEndChild(node_technique_common);
+		TiXmlElement* node_technique_common = new TiXmlElement("technique_common");
+		node_source->LinkEndChild(node_technique_common);
 
-	node_accessor = new TiXmlElement("accessor");
-	node_technique_common->LinkEndChild(node_accessor);
-	node_accessor->SetAttribute("count", nbVertex);
-	node_accessor->SetAttribute("offset", "0");
-	node_accessor->SetAttribute("source", "#"+ name + "_color_floats");
-	node_accessor->SetAttribute("stride", "4");
+		TiXmlElement* node_accessor = new TiXmlElement("accessor");
+		node_technique_common->LinkEndChild(node_accessor);
+		node_accessor->SetAttribute("count", nbVertex);
+		node_accessor->SetAttribute("offset", "0");
+		node_accessor->SetAttribute("source", "#" + name + "_color_floats");
+		node_accessor->SetAttribute("stride", "4");
 
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "R");
-	node_param->SetAttribute("type", "float");
+		TiXmlElement* node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "R");
+		node_param->SetAttribute("type", "float");
 
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "G");
-	node_param->SetAttribute("type", "float");
+		node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "G");
+		node_param->SetAttribute("type", "float");
 
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "B");
-	node_param->SetAttribute("type", "float");
+		node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "B");
+		node_param->SetAttribute("type", "float");
 
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "A");
-	node_param->SetAttribute("type", "float");
+		node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "A");
+		node_param->SetAttribute("type", "float");
+	}
 
 	/////////////////////////////////////////////////////
 
@@ -416,25 +430,37 @@ void Collada::addGeometry(string name, std::vector<EMDVertex> &vertices, std::ve
 	node_mesh->LinkEndChild(node_vertices);
 	node_vertices->SetAttribute("id", name + "_vertices");
 
-	TiXmlElement * node_input = new TiXmlElement("input");
-	node_vertices->LinkEndChild(node_input);
-	node_input->SetAttribute("semantic", "POSITION");
-	node_input->SetAttribute("source", "#"+ name + "_positions");
+	size_t incOffset = 0;
+	if (havePosition)
+	{
+		TiXmlElement * node_input = new TiXmlElement("input");
+		node_vertices->LinkEndChild(node_input);
+		node_input->SetAttribute("semantic", "POSITION");
+		node_input->SetAttribute("source", "#" + name + "_positions");
+		++incOffset;
+	}
 
-	node_input = new TiXmlElement("input");
-	node_vertices->LinkEndChild(node_input);
-	node_input->SetAttribute("semantic", "TEXCOORD");
-	node_input->SetAttribute("offset", "1");
-	node_input->SetAttribute("set", "1");
-	node_input->SetAttribute("source", "#" + name + "_uv");
+	if (haveUv)
+	{
+		TiXmlElement* node_input = new TiXmlElement("input");
+		node_vertices->LinkEndChild(node_input);
+		node_input->SetAttribute("semantic", "TEXCOORD");
+		node_input->SetAttribute("offset", incOffset);
+		node_input->SetAttribute("set", "1");
+		node_input->SetAttribute("source", "#" + name + "_uv");
+		++incOffset;
+	}
 
-	node_input = new TiXmlElement("input");
-	node_vertices->LinkEndChild(node_input);
-	node_input->SetAttribute("semantic", "COLOR");
-	node_input->SetAttribute("offset", "2");
-	node_input->SetAttribute("set", "0");
-	node_input->SetAttribute("source", "#" + name + "_color");
-
+	if (haveColor)
+	{
+		TiXmlElement* node_input = new TiXmlElement("input");
+		node_vertices->LinkEndChild(node_input);
+		node_input->SetAttribute("semantic", "COLOR");
+		node_input->SetAttribute("offset", incOffset);
+		node_input->SetAttribute("set", "0");
+		node_input->SetAttribute("source", "#" + name + "_color");
+		++incOffset;
+	}
 
 	/////////////////////////////////////////////////////
 
@@ -450,7 +476,7 @@ void Collada::addGeometry(string name, std::vector<EMDVertex> &vertices, std::ve
 		node_polylist->SetAttribute("count", nbFaceIndices / 3);
 		node_polylist->SetAttribute("material", materialName);
 
-		node_input = new TiXmlElement("input");
+		TiXmlElement* node_input = new TiXmlElement("input");
 		node_polylist->LinkEndChild(node_input);
 		node_input->SetAttribute("offset", "0");
 		node_input->SetAttribute("semantic", "VERTEX");
@@ -1675,15 +1701,20 @@ void Swr_Model::save_Xml(string filename, bool show_error)
 		doc->LinkEndChild(root);
 
 		Collada* collada = new Collada();
+		collada->addColorMaterial("Default", "1 0 0 1");
+		Collada* collada_collision = new Collada();
+		collada_collision->addColorMaterial("Default", "0 0 1 1");
 
-		write_Xml(root, buf, size, name, collada);
+		write_Xml(root, buf, size, name, collada, collada_collision);
 
 		doc->SaveFile(name + ".xml");
 		collada->save(name + ".dae");
+		collada_collision->save(name + "_collision.dae");
 
 		delete[] buf;
 		delete doc;
 		delete collada;
+		delete collada_collision;
 	}
 
 	return;
@@ -1693,7 +1724,7 @@ void Swr_Model::save_Xml(string filename, bool show_error)
 /*-------------------------------------------------------------------------------\
 |                             write_Xml						                     |
 \-------------------------------------------------------------------------------*/
-void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size, string filename, Collada* collada)
+void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size, string filename, Collada* collada, Collada* collada_collision)
 {
 	bool XMLTEST_SoKeepSmaller = false;
 	bool XMLTEST_UseHierarchy = true;
@@ -1952,7 +1983,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 			node_model->LinkEndChild(node_listMalt);			//test Anima Todo unComment
 
 		TiXmlElement* collada_ModelNode = collada->createNode(modelName);
-
+		TiXmlElement* collada_collision_ModelNode = collada_collision->createNode(modelName);
+		
 		
 
 		std::vector<size_t> listAltN_offset;								//both for link animation, with bone/node name (instead of offset.)
@@ -1973,7 +2005,11 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 			std::vector<TiXmlElement*> listRecusiveAltN_ColladaParentNode;
 			listRecusiveAltN_ColladaParentNode.push_back(collada_ModelNode);
+			std::vector<TiXmlElement*> listRecusiveAltN_Collada_collisionParentNode;
+			listRecusiveAltN_Collada_collisionParentNode.push_back(collada_collision_ModelNode);
 
+			
+			
 
 			for (size_t j = 0; j<listRecusiveAltN.size(); j++)
 			{
@@ -1988,7 +2024,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 				string maltNodeName = modelName + "__" + uniqueId_str;
 
 				TiXmlElement* collada_node = collada->createNode(maltNodeName, listRecusiveAltN_ColladaParentNode.at(j));
-
+				TiXmlElement* collada_collision_node = collada_collision->createNode(maltNodeName, listRecusiveAltN_Collada_collisionParentNode.at(j));
+				
 
 				listAltN_offset.push_back(offset);
 				listAltN_BonesName.push_back(maltNodeName);
@@ -2114,13 +2151,11 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 
 
-
+						string materialName = "Default";
 						std::vector<EMDVertex> listVertex;
 						std::vector<EMDTriangles> listTriangles;
-						string materialName = "Default";
-
-						std::vector<EMDVertex> listVertex_collision;					//todo 
-						std::vector<EMDTriangles> listTriangles_collision;				//todo 
+						std::vector<EMDVertex> listVertex_collision;
+						std::vector<EMDTriangles> listTriangles_collision;
 
 
 
@@ -2213,6 +2248,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 								
 								EMDVertex vertex;
+								vertex.flags = EMD_VTX_FLAG_POS | EMD_VTX_FLAG_TEX | EMD_VTX_FLAG_COLOR;
 								vertex.pos_x = (float)(int16_t)val16(section52->posX);
 								vertex.pos_y = (float)(int16_t)val16(section52->posY);
 								vertex.pos_z = (float)(int16_t)val16(section52->posZ);
@@ -2328,24 +2364,6 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 							size_t startoffset_section44 = section3->offset_unk44 + hdr->offset_Section2;
 							offset = startoffset_section44;
 
-							/*
-							emdSubMesh_Collision = new EMDSubmesh();
-							//emdSubMesh_Collision->name = "Default_Collision";					//materialName
-							emdSubMesh_Collision->name = emdModel->name + "_submesh_" + std::to_string(k);				//test Todo remove.
-							emdSubMesh_Collision->vertex_type_flag = EMD_VTX_FLAG_POS;
-							emdSubMesh_Collision->vertex_size = EMDVertex::getSizeFromFlags(emdSubMesh_Collision->vertex_type_flag);
-							emdSubMesh_Collision->aabb_min_x = s3MinX;
-							emdSubMesh_Collision->aabb_min_y = s3MinY;
-							emdSubMesh_Collision->aabb_min_z = s3MinZ;
-							emdSubMesh_Collision->aabb_max_x = s3MaxX;
-							emdSubMesh_Collision->aabb_max_y = s3MaxY;
-							emdSubMesh_Collision->aabb_max_z = s3MaxZ;
-							emdSubMesh_Collision->aabb_center_x = (emdSubMesh_Collision->aabb_max_x + emdSubMesh_Collision->aabb_min_x) / 2.0f;
-							emdSubMesh_Collision->aabb_center_y = (emdSubMesh_Collision->aabb_max_y + emdSubMesh_Collision->aabb_min_y) / 2.0f;
-							emdSubMesh_Collision->aabb_center_z = (emdSubMesh_Collision->aabb_max_z + emdSubMesh_Collision->aabb_min_z) / 2.0f;
-							*/
-
-
 							TiXmlElement* node_section44 = new TiXmlElement("Section44_Collision_Geometry");
 							node_section44->SetAttribute("startOffset", UnsignedToString(offset, true));
 							if (!XMLTEST_SoKeepSmaller)
@@ -2392,14 +2410,12 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 									posY = (float)(int16_t)val16(values_u16[valueIndex++]);
 									posZ = (float)(int16_t)val16(values_u16[valueIndex++]);
 
-									/*
 									EMDVertex vertex;
-									vertex.flags = emdSubMesh_Collision->vertex_type_flag;
+									vertex.flags = EMD_VTX_FLAG_POS;
 									vertex.pos_x = posX;
 									vertex.pos_y = posY;
 									vertex.pos_z = posZ;
-									emdSubMesh_Collision->vertices.push_back(vertex);
-									*/
+									listVertex_collision.push_back(vertex);
 
 									node = new TiXmlElement("Vertex");
 									node->SetDoubleAttribute("posX", posX);
@@ -2408,7 +2424,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 									node_section44->LinkEndChild(node);
 								}
 
-								/*
+								
 								EMDTriangles emdTriangle;
 
 								if (section3->typeMode == 3)			//simple triangles 
@@ -2459,23 +2475,12 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 								{
 									printf("Error number of face is 0. skipped\n");
 									notifyError();
+								}else {
+									listTriangles_collision.push_back(emdTriangle);
 								}
-								else {
-									emdSubMesh_Collision->triangles.push_back(emdTriangle);
-								}
-								*/
 
 								incVertex += nbVertex;
 							}
-							/*
-							if (emdSubMesh_Collision->triangles.size())
-							{
-								emdMesh_collision->submeshes.push_back(emdSubMesh_Collision);
-							}
-							else {
-								delete emdSubMesh_Collision;
-							}
-							*/
 						}
 
 
@@ -2591,7 +2596,9 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 
 								materialName = "MatTexture_" + UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, true);
-								collada->addTextureMaterial(materialName, "texture_"+ UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, true) +".png");
+								collada->addTextureMaterial(materialName, "texture_"+ UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, false) +".png");
+								collada_collision->addTextureMaterial(materialName, "texture_" + UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, false) + ".png");
+								
 
 								/*
 								if (emdSubMesh)
@@ -2780,6 +2787,12 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 							collada->makeInstanceGeometryOnNode(collada_node, submeshName, materialName, materialName != "Default");
 						}
 
+						if ((listVertex_collision.size()) && (listTriangles_collision.size()))
+						{
+							collada_collision->addGeometry(submeshName, listVertex_collision, listTriangles_collision, materialName);
+							collada_collision->makeInstanceGeometryOnNode(collada_collision_node, submeshName, materialName, materialName != "Default");
+						}
+
 						
 						
 
@@ -2939,6 +2952,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 					}
 
 					collada->addTransformOnNode(collada_node, val_float(section->posX), val_float(section->posY), val_float(section->posZ), rotAxisX, rotAxisY, rotAxisZ, rotAngle);
+					collada_collision->addTransformOnNode(collada_collision_node, val_float(section->posX), val_float(section->posY), val_float(section->posZ), rotAxisX, rotAxisY, rotAxisZ, rotAngle);
 				}
 				break;
 
@@ -3031,7 +3045,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						}
 					}
 
-					collada->addTransformOnNode(collada_node, val_float(section->posX), val_float(section->posY), val_float(section->posZ), rotAxisX, rotAxisY, rotAxisZ, rotAngle);
+					collada_collision->addTransformOnNode(collada_collision_node, val_float(section->posX), val_float(section->posY), val_float(section->posZ), rotAxisX, rotAxisY, rotAxisZ, rotAngle);
 				}
 				break;
 
@@ -3079,6 +3093,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 						listRecusiveAltN.push_back(val32(listOffsetAltN_Child[k]) + hdr->offset_Section2);
 						listRecusiveAltN_ColladaParentNode.push_back(collada_node);
+						listRecusiveAltN_Collada_collisionParentNode.push_back(collada_collision_node);
 						if (XMLTEST_UseHierarchy)
 						{
 							listRecusiveAltN_Xml.push_back(node_section);						//to have hierarchy.
