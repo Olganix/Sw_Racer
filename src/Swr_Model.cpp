@@ -2313,14 +2313,14 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 									for (size_t n = 0; n + 3 < nbVertex; n += 4)					//test case diagonale come from 0 to 2 (1 and 3 are neighbour of 0) => diagonal is good.
 									{
 										//triangle A
-										emdTriangle.faces.push_back(incVertex + n);
 										emdTriangle.faces.push_back(incVertex + n + 1);
 										emdTriangle.faces.push_back(incVertex + n + 2);
+										emdTriangle.faces.push_back(incVertex + n + 3);
 
 										//triangle B
-										emdTriangle.faces.push_back(incVertex + n);
-										emdTriangle.faces.push_back(incVertex + n + 2);
 										emdTriangle.faces.push_back(incVertex + n + 3);
+										emdTriangle.faces.push_back(incVertex + n + 0);
+										emdTriangle.faces.push_back(incVertex + n + 1);
 									}
 
 								}else {									//case 5 : triangle strip  https://en.wikipedia.org/wiki/Triangle_strip
