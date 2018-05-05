@@ -168,8 +168,8 @@ Collada::Collada()
 
 	TiXmlElement* node_unit = new TiXmlElement("unit");
 	node_asset->LinkEndChild(node_unit);
-	node_unit->SetAttribute("meter", "1");
-	node_unit->SetAttribute("name", "meter");
+	node_unit->SetAttribute("meter", "0.01");
+	node_unit->SetAttribute("name", "centimeter");
 
 	TiXmlElement* node_up_axis = new TiXmlElement("up_axis");
 	node_asset->LinkEndChild(node_up_axis);
