@@ -76,6 +76,12 @@ namespace Common
 	string nameFromFilenameNoExtension(string filename, bool last_dot = false);
 	string folderFromFilename(string filename);
 	string filenameNoExtension(string filename);
+	
+	//string
+	std::vector<std::string> split(const std::string &text, char sep);
+
+	//math
+	void decomposition4x4(double* transformMatrix, double* resultPosOrientScaleMatrix); //posOrientScaleMatrix is 3x4, orient is a quaternion informations, TransformMatrix is 4x4
 }
 
 #endif

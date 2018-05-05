@@ -9,8 +9,7 @@
 
 -WxHexEditorColorMaker : Create a .tags file for Model's bin file. tags files are readed by WxHexEditor when open the file with the same name.
 -XmlConverter: convert the Model's bin file into Xml. (and for test, extract the 3D datas into Collada (.dae) for testing into a 3d sofware)
-
-Currently, the solution is targeting Visual Studio 2017 under Windows. But, we will try to add CMake way of build. 
+To use it, just drag and drop (or using command line) the model.bin files.
 
 You will still need the original game for its art assets: levels, sounds, ...
 
