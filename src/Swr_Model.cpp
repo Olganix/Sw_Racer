@@ -446,7 +446,7 @@ void Collada::addGeometry(string name, std::vector<EMDVertex> &vertices, std::ve
 		node_vertices->LinkEndChild(node_input);
 		node_input->SetAttribute("semantic", "TEXCOORD");
 		node_input->SetAttribute("offset", incOffset);
-		node_input->SetAttribute("set", "1");
+		node_input->SetAttribute("set", "0");
 		node_input->SetAttribute("source", "#" + name + "_uv");
 		++incOffset;
 	}
@@ -504,9 +504,9 @@ void Collada::addTextureMaterial(string name, string filename)
 
 	listMaterialNames.push_back(name);
 
-	addImage(name, filename);
-	addEffect(name, true, name);
-	addMaterial(name, name);
+	addImage(name + "_texture", filename);
+	addEffect(name, true, name + "_texture");
+	addMaterial(name, name + "_effect");
 }
 /*-------------------------------------------------------------------------------\
 |                             addColorMaterial									 |
@@ -638,7 +638,7 @@ void Collada::addEffect(string name, bool isSampler2D, string nameTexture, strin
 {
 	TiXmlElement* node_effect = new TiXmlElement("effect");
 	node_library_effects->LinkEndChild(node_effect);
-	node_effect->SetAttribute("id", name);
+	node_effect->SetAttribute("id", name +"_effect");
 
 	TiXmlElement* node_profile_COMMON = new TiXmlElement("profile_COMMON");
 	node_effect->LinkEndChild(node_profile_COMMON);
@@ -795,492 +795,12 @@ void Collada::save(string filename)
 
 /*
 {
-	//test Collada
-	TiXmlDocument *doc = new TiXmlDocument();
-	TiXmlDeclaration* decl = new TiXmlDeclaration("1.0", "UTF-8", "");
-	doc->LinkEndChild(decl);
-
-	TiXmlElement* root = new TiXmlElement("COLLADA");
-	doc->LinkEndChild(root);
-	root->SetAttribute("xmlns", "http://www.collada.org/2005/11/COLLADASchema");
-	root->SetAttribute("version", "1.4.1");
-
-
-	/////////////////////////////////////////////////////
-
-	TiXmlElement* node_asset = new TiXmlElement("asset");
-	root->LinkEndChild(node_asset);
-
-	TiXmlElement* node_unit = new TiXmlElement("unit");
-	node_asset->LinkEndChild(node_unit);
-	node_unit->SetAttribute("meter", "1");
-	node_unit->SetAttribute("name", "meter");
-
-	TiXmlElement* node_up_axis = new TiXmlElement("up_axis");
-	node_asset->LinkEndChild(node_up_axis);
-	node_up_axis->LinkEndChild(new TiXmlText("Y_UP"));
-
-
-	/////////////////////////////////////////////////////
-
-	root->LinkEndChild(new TiXmlElement("library_cameras"));
-	root->LinkEndChild(new TiXmlElement("library_lights"));
-
-
-
-	/////////////////////////////////////////////////////
-
-	TiXmlElement* node_library_images = new TiXmlElement("library_images");
-	root->LinkEndChild(node_library_images);
-
-	TiXmlElement* node_image = new TiXmlElement("image");
-	node_library_images->LinkEndChild(node_image);
-	node_image->SetAttribute("id", "texture_0");
-	node_image->SetAttribute("name", "texture_0");
-	node_image->SetAttribute("depth", "1");
-
-
-	TiXmlElement* node_init_from = new TiXmlElement("init_from");
-	node_image->LinkEndChild(node_init_from);
-	node_init_from->LinkEndChild(new TiXmlText("./duckCM.tga"));
-
-
-	/////////////////////////////////////////////////////
-
-
-	TiXmlElement* node_library_effects = new TiXmlElement("library_effects");
-	root->LinkEndChild(node_library_effects);
-
-	TiXmlElement* node_effect = new TiXmlElement("effect");
-	node_library_effects->LinkEndChild(node_effect);
-	node_effect->SetAttribute("id", "effect_0");
-
-	TiXmlElement* node_profile_COMMON = new TiXmlElement("profile_COMMON");
-	node_effect->LinkEndChild(node_profile_COMMON);
-
-	TiXmlElement* node_newparam = new TiXmlElement("newparam");
-	node_profile_COMMON->LinkEndChild(node_newparam);
-	node_newparam->SetAttribute("sid", "surface_0");
-
-	TiXmlElement* node_surface = new TiXmlElement("surface");
-	node_newparam->LinkEndChild(node_surface);
-	node_surface->SetAttribute("type", "2D");
-
-	node_init_from = new TiXmlElement("init_from");
-	node_surface->LinkEndChild(node_init_from);
-	node_init_from->LinkEndChild(new TiXmlText("texture_0"));
-
-	TiXmlElement* node_format = new TiXmlElement("format");
-	node_surface->LinkEndChild(node_format);
-	node_format->LinkEndChild(new TiXmlText("A8R8G8B8"));
-
-	///////////////
-
-
-	node_newparam = new TiXmlElement("newparam");
-	node_profile_COMMON->LinkEndChild(node_newparam);
-	node_newparam->SetAttribute("sid", "sampler_0");
-
-	TiXmlElement* node_sampler2D = new TiXmlElement("sampler2D");
-	node_newparam->LinkEndChild(node_sampler2D);
-
-	TiXmlElement* node_source = new TiXmlElement("source");
-	node_sampler2D->LinkEndChild(node_source);
-	node_source->LinkEndChild(new TiXmlText("surface_0"));
-
-	TiXmlElement* node_minfilter = new TiXmlElement("minfilter");
-	node_sampler2D->LinkEndChild(node_minfilter);
-	node_minfilter->LinkEndChild(new TiXmlText("LINEAR_MIPMAP_LINEAR"));
-
-	TiXmlElement* node_magfilter = new TiXmlElement("magfilter");
-	node_sampler2D->LinkEndChild(node_magfilter);
-	node_magfilter->LinkEndChild(new TiXmlText("LINEAR"));
-
-	///////////////
-
-
-	TiXmlElement* node_technique = new TiXmlElement("technique");
-	node_profile_COMMON->LinkEndChild(node_technique);
-	node_technique->SetAttribute("sid", "common");
-
-	TiXmlElement* node_blinn = new TiXmlElement("blinn");
-	node_technique->LinkEndChild(node_blinn);
-
-
-	TiXmlElement* node_emission = new TiXmlElement("emission");
-	node_blinn->LinkEndChild(node_emission);
-	TiXmlElement* node_color = new TiXmlElement("color");
-	node_emission->LinkEndChild(node_color);
-	node_color->LinkEndChild(new TiXmlText("0 0 0 1"));
-
-
-	TiXmlElement* node_ambient = new TiXmlElement("ambient");
-	node_blinn->LinkEndChild(node_ambient);
-	node_color = new TiXmlElement("color");
-	node_ambient->LinkEndChild(node_color);
-	node_color->LinkEndChild(new TiXmlText("0 0 0 1"));
-
-
-	TiXmlElement* node_diffuse = new TiXmlElement("diffuse");
-	node_blinn->LinkEndChild(node_diffuse);
-	TiXmlElement* node_texture = new TiXmlElement("texture");
-	node_diffuse->LinkEndChild(node_texture);
-	node_texture->SetAttribute("texture", "sampler_0");
-	node_texture->SetAttribute("texcoord", "TEX0");
-
-	TiXmlElement* node_specular = new TiXmlElement("specular");
-	node_blinn->LinkEndChild(node_specular);
-	node_color = new TiXmlElement("color");
-	node_specular->LinkEndChild(node_color);
-	node_color->LinkEndChild(new TiXmlText("0 0 0 1"));
-
-
-	TiXmlElement* node_shininess = new TiXmlElement("shininess");
-	node_blinn->LinkEndChild(node_shininess);
-	TiXmlElement* node_float = new TiXmlElement("float");
-	node_shininess->LinkEndChild(node_float);
-	node_float->LinkEndChild(new TiXmlText("0.3"));
-
-	TiXmlElement* node_reflective = new TiXmlElement("reflective");
-	node_blinn->LinkEndChild(node_reflective);
-	node_color = new TiXmlElement("color");
-	node_reflective->LinkEndChild(node_color);
-	node_color->LinkEndChild(new TiXmlText("0 0 0 1"));
-
-	TiXmlElement* node_reflectivity = new TiXmlElement("reflectivity");
-	node_blinn->LinkEndChild(node_reflectivity);
-	node_float = new TiXmlElement("float");
-	node_reflectivity->LinkEndChild(node_float);
-	node_float->LinkEndChild(new TiXmlText("0.5"));
-
-
-	TiXmlElement* node_transparent = new TiXmlElement("transparent");
-	node_blinn->LinkEndChild(node_transparent);
-	node_color = new TiXmlElement("color");
-	node_transparent->LinkEndChild(node_color);
-	node_color->LinkEndChild(new TiXmlText("0 0 0 1"));
-
-	TiXmlElement* node_transparency = new TiXmlElement("transparency");
-	node_blinn->LinkEndChild(node_transparency);
-	node_float = new TiXmlElement("float");
-	node_transparency->LinkEndChild(node_float);
-	node_float->LinkEndChild(new TiXmlText("1"));
-
-	TiXmlElement* node_index_of_refraction = new TiXmlElement("index_of_refraction");
-	node_blinn->LinkEndChild(node_index_of_refraction);
-	node_float = new TiXmlElement("float");
-	node_index_of_refraction->LinkEndChild(node_float);
-	node_float->LinkEndChild(new TiXmlText("1"));
-
-	/////////////////////////////////////////////////////
-
-
-	TiXmlElement* node_library_materials = new TiXmlElement("library_materials");
-	root->LinkEndChild(node_library_materials);
-
-	TiXmlElement* node_material = new TiXmlElement("material");
-	node_library_materials->LinkEndChild(node_material);
-	node_material->SetAttribute("id", "mat_0");
-	node_material->SetAttribute("name", "mat_0");
-
-
-	TiXmlElement* node_instance_effect = new TiXmlElement("instance_effect");
-	node_material->LinkEndChild(node_instance_effect);
-	node_instance_effect->SetAttribute("url", "#effect_0");
-
-
-	/////////////////////////////////////////////////////
-
-
-	TiXmlElement* node_geometries = new TiXmlElement("library_geometries");
-	root->LinkEndChild(node_geometries);
-
-
-	TiXmlElement* node_geometry = new TiXmlElement("geometry");
-	node_geometries->LinkEndChild(node_geometry);
-	node_geometry->SetAttribute("id", "box-lib");
-	node_geometry->SetAttribute("name", "box");
-
-	TiXmlElement* node_mesh = new TiXmlElement("mesh");
-	node_geometry->LinkEndChild(node_mesh);
-
-
-	node_source = new TiXmlElement("source");
-	node_mesh->LinkEndChild(node_source);
-	node_source->SetAttribute("id", "box-lib-positions");
-	node_source->SetAttribute("name", "position");
-
-	TiXmlElement* node_listFloat = new TiXmlElement("float_array");
-	node_source->LinkEndChild(node_listFloat);
-	node_listFloat->SetAttribute("id", "box-lib-positions-array");
-	node_listFloat->SetAttribute("count", "24");
-	node_listFloat->LinkEndChild(new TiXmlText("-50 50 50 50 50 50 -50 -50 50 50 -50 50 -50 50 -50 50 50 -50 -50 -50 -50 50 -50 -50"));
-
-	TiXmlElement* node_technique_common = new TiXmlElement("technique_common");
-	node_source->LinkEndChild(node_technique_common);
-
-	TiXmlElement* node_accessor = new TiXmlElement("accessor");
-	node_technique_common->LinkEndChild(node_accessor);
-	node_accessor->SetAttribute("count", "8");
-	node_accessor->SetAttribute("offset", "0");
-	node_accessor->SetAttribute("source", "#box-lib-positions-array");
-	node_accessor->SetAttribute("stride", "3");
-
-	TiXmlElement* node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "X");
-	node_param->SetAttribute("type", "float");
-
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "Y");
-	node_param->SetAttribute("type", "float");
-
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "Z");
-	node_param->SetAttribute("type", "float");
-
-	/////////////////////////////////////////////////////
-
-	node_source = new TiXmlElement("source");
-	node_mesh->LinkEndChild(node_source);
-	node_source->SetAttribute("id", "box-lib-normals");
-	node_source->SetAttribute("name", "normal");
-
-	node_listFloat = new TiXmlElement("float_array");
-	node_source->LinkEndChild(node_listFloat);
-	node_listFloat->SetAttribute("id", "box-lib-normals-array");
-	node_listFloat->SetAttribute("count", "72");
-	node_listFloat->LinkEndChild(new TiXmlText("0 0 1 0 0 1 0 0 1 0 0 1 0 1 0 0 1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 0 0 -1 0 0 -1 0 0 -1 0 0 -1"));
-
-	node_technique_common = new TiXmlElement("technique_common");
-	node_source->LinkEndChild(node_technique_common);
-
-	node_accessor = new TiXmlElement("accessor");
-	node_technique_common->LinkEndChild(node_accessor);
-	node_accessor->SetAttribute("count", "24");
-	node_accessor->SetAttribute("offset", "0");
-	node_accessor->SetAttribute("source", "#box-lib-normals-array");
-	node_accessor->SetAttribute("stride", "3");
-
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "X");
-	node_param->SetAttribute("type", "float");
-
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "Y");
-	node_param->SetAttribute("type", "float");
-
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "Z");
-	node_param->SetAttribute("type", "float");
-
-
-
-	/////////////////////////////////////////////////////
-
-	node_source = new TiXmlElement("source");
-	node_mesh->LinkEndChild(node_source);
-	node_source->SetAttribute("id", "box-lib-uv");
-	node_source->SetAttribute("name", "uv");
-
-	node_listFloat = new TiXmlElement("float_array");
-	node_source->LinkEndChild(node_listFloat);
-	node_listFloat->SetAttribute("id", "box-lib-uv-array");
-	node_listFloat->SetAttribute("count", "24");
-	node_listFloat->LinkEndChild(new TiXmlText("0 0 0 1 0 0 1 1 0 0 1 0 0 0 0 1 0 0 1 1 0 0 1 0"));
-
-	node_technique_common = new TiXmlElement("technique_common");
-	node_source->LinkEndChild(node_technique_common);
-
-	node_accessor = new TiXmlElement("accessor");
-	node_technique_common->LinkEndChild(node_accessor);
-	node_accessor->SetAttribute("count", "8");
-	node_accessor->SetAttribute("offset", "0");
-	node_accessor->SetAttribute("source", "#box-lib-uv-array");
-	node_accessor->SetAttribute("stride", "3");
-
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "S");
-	node_param->SetAttribute("type", "float");
-
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "T");
-	node_param->SetAttribute("type", "float");
-
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "P");
-	node_param->SetAttribute("type", "float");
-
-
-	/////////////////////////////////////////////////////
-
-	node_source = new TiXmlElement("source");
-	node_mesh->LinkEndChild(node_source);
-	node_source->SetAttribute("id", "box-lib-color");
-	node_source->SetAttribute("name", "color");
-
-	node_listFloat = new TiXmlElement("float_array");
-	node_source->LinkEndChild(node_listFloat);
-	node_listFloat->SetAttribute("id", "box-lib-color-array");
-	node_listFloat->SetAttribute("count", "32");
-	node_listFloat->LinkEndChild(new TiXmlText("0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1"));
-
-	node_technique_common = new TiXmlElement("technique_common");
-	node_source->LinkEndChild(node_technique_common);
-
-	node_accessor = new TiXmlElement("accessor");
-	node_technique_common->LinkEndChild(node_accessor);
-	node_accessor->SetAttribute("count", "8");
-	node_accessor->SetAttribute("offset", "0");
-	node_accessor->SetAttribute("source", "#box-lib-color-array");
-	node_accessor->SetAttribute("stride", "4");
-
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "R");
-	node_param->SetAttribute("type", "float");
-
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "G");
-	node_param->SetAttribute("type", "float");
-
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "B");
-	node_param->SetAttribute("type", "float");
-
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "A");
-	node_param->SetAttribute("type", "float");
-
-	/////////////////////////////////////////////////////
-
-	TiXmlElement* node_vertices = new TiXmlElement("vertices");
-	node_mesh->LinkEndChild(node_vertices);
-	node_vertices->SetAttribute("id", "box-lib-vertices");
-
-	TiXmlElement * node_input = new TiXmlElement("input");
-	node_vertices->LinkEndChild(node_input);
-	node_input->SetAttribute("semantic", "POSITION");
-	node_input->SetAttribute("source", "#box-lib-positions");
-
-
-	node_input = new TiXmlElement("input");
-	node_vertices->LinkEndChild(node_input);
-	node_input->SetAttribute("semantic", "TEXCOORD");
-	node_input->SetAttribute("offset", "1");
-	node_input->SetAttribute("set", "1");
-	node_input->SetAttribute("source", "#box-lib-uv");
-
-
-	node_input = new TiXmlElement("input");
-	node_vertices->LinkEndChild(node_input);
-	node_input->SetAttribute("semantic", "COLOR");
-	node_input->SetAttribute("offset", "2");
-	node_input->SetAttribute("set", "0");
-	node_input->SetAttribute("source", "#box-lib-color");
-
-
-	/////////////////////////////////////////////////////
-
-	TiXmlElement* node_polylist = new TiXmlElement("polylist");			// it's for "tristrips" strip. but we coudl also use "triangles", "polylist" for list of group.
-	node_mesh->LinkEndChild(node_polylist);
-	node_polylist->SetAttribute("count", "6");
-	node_polylist->SetAttribute("material", "mat_0");
-
-
-	node_input = new TiXmlElement("input");
-	node_polylist->LinkEndChild(node_input);
-	node_input->SetAttribute("offset", "0");
-	node_input->SetAttribute("semantic", "VERTEX");
-	node_input->SetAttribute("source", "#box-lib-vertices");
-
-	node_input = new TiXmlElement("input");
-	node_polylist->LinkEndChild(node_input);
-	node_input->SetAttribute("offset", "1");
-	node_input->SetAttribute("semantic", "NORMAL");
-	node_input->SetAttribute("source", "#box-lib-normals");
-
-	TiXmlElement* node_vcount = new TiXmlElement("vcount");
-	node_polylist->LinkEndChild(node_vcount);
-	node_vcount->LinkEndChild(new TiXmlText("4 4 4 4 4 4"));
-
-	TiXmlElement* node_p = new TiXmlElement("p");
-	node_polylist->LinkEndChild(node_p);
-	node_p->LinkEndChild(new TiXmlText("0 0 2 1 3 2 1 3 0 4 1 5 5 6 4 7 6 8 7 9 3 10 2 11 0 12 4 13 6 14 2 15 3 16 7 17 5 18 1 19 5 20 7 21 6 22 4 23"));
-
-
-	/////////////////////////////////////////////////////
-
-
-	TiXmlElement* node_scene = new TiXmlElement("library_visual_scenes");
-	root->LinkEndChild(node_scene);
-
-	TiXmlElement* node_visual_scene = new TiXmlElement("visual_scene");
-	node_scene->LinkEndChild(node_visual_scene);
-	node_visual_scene->SetAttribute("id", "VisualSceneNode");
-	node_visual_scene->SetAttribute("name", "untitled");
-
-	TiXmlElement* node = new TiXmlElement("node");
-	node_visual_scene->LinkEndChild(node);
-	node->SetAttribute("id", "Box");
-	node->SetAttribute("name", "Box");
-
-	TiXmlElement* node_translate = new TiXmlElement("translate");
-	node->LinkEndChild(node_translate);
-	node_translate->SetAttribute("sid", "translate");
-	node_translate->LinkEndChild(new TiXmlText("-500 1000 400"));
-
-	TiXmlElement* node_rotate = new TiXmlElement("rotate");
-	node->LinkEndChild(node_rotate);
-	node_rotate->SetAttribute("sid", "rotateY");
-	node_rotate->LinkEndChild(new TiXmlText("0 1 0 45"));
-
-	/*
-	<rotate sid="rotateZ">0 0 1 0</rotate>
-	<rotate sid="rotateY">0 1 0 0</rotate>
-	<rotate sid="rotateX">1 0 0 0</rotate>
-	*//*
-
-	TiXmlElement* node_instance_geometry = new TiXmlElement("instance_geometry");
-	node->LinkEndChild(node_instance_geometry);
-	node_instance_geometry->SetAttribute("url", "#box-lib");
-
-	node_material = new TiXmlElement("bind_material");
-	node_instance_geometry->LinkEndChild(node_material);
-
-	node_technique_common = new TiXmlElement("technique_common");
-	node_material->LinkEndChild(node_technique_common);
-
-	TiXmlElement* node_instance_material = new TiXmlElement("instance_material");
-	node_technique_common->LinkEndChild(node_instance_material);
-	node_instance_material->SetAttribute("symbol", "mat_0");
-	node_instance_material->SetAttribute("target", "#mat_0");
-
-	TiXmlElement* node_bind_vertex_input = new TiXmlElement("bind_vertex_input");
-	node_instance_material->LinkEndChild(node_bind_vertex_input);
-	node_bind_vertex_input->SetAttribute("semantic", "TEX0");
-	node_bind_vertex_input->SetAttribute("input_semantic", "TEXCOORD");
-	node_bind_vertex_input->SetAttribute("input_set", "0");
-
-
 	/////////////////////////////////////////////////////
 
 
 	TiXmlElement* node_library_animations = new TiXmlElement("library_animations");
 	root->LinkEndChild(node_library_animations);
 
-	/*
 
 	<animation id="Box001-anim" name="Box001"></animation>
 	<animation>
@@ -1325,30 +845,6 @@ void Collada::save(string filename)
 	</visual_scene>
 	</library_visual_scenes>
 
-
-	*//*
-
-
-
-	/////////////////////////////////////////////////////
-
-
-	TiXmlElement* node_instanceScene = new TiXmlElement("scene");
-	root->LinkEndChild(node_instanceScene);
-
-	TiXmlElement* node_instance_visual_scene = new TiXmlElement("instance_visual_scene");
-	node_instanceScene->LinkEndChild(node_instance_visual_scene);
-	node_instance_visual_scene->SetAttribute("url", "#VisualSceneNode");
-
-
-
-
-
-	doc->SaveFile(filename + ".dae");
-
-	delete doc;
-
-	return;
 }
 */
 
@@ -2248,12 +1744,15 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 								
 								EMDVertex vertex;
-								vertex.flags = EMD_VTX_FLAG_POS | EMD_VTX_FLAG_TEX | EMD_VTX_FLAG_COLOR;
+								//vertex.flags = EMD_VTX_FLAG_POS | EMD_VTX_FLAG_TEX | EMD_VTX_FLAG_COLOR;
+								vertex.flags = EMD_VTX_FLAG_POS | EMD_VTX_FLAG_TEX;
+
 								vertex.pos_x = (float)(int16_t)val16(section52->posX);
 								vertex.pos_y = (float)(int16_t)val16(section52->posY);
 								vertex.pos_z = (float)(int16_t)val16(section52->posZ);
-								vertex.text_u = ((float)val16(section52->uvU)) / 65535.0f;
-								vertex.text_v = ((float)val16(section52->uvV)) / 65535.0f;
+								vertex.text_u = (int16_t)val16(section52->uvU) / (float)0xFFF;
+								vertex.text_v = (int16_t)val16(section52->uvV) / (float)0xFFF;
+
 								//in reality ColorRGB give the look like of normal directions, and ColorA look like specular.
 								vertex.color = (section52->colorR << 24) + (section52->colorG << 16) + (section52->colorB << 8) + section52->colorA;
 								listVertex.push_back(vertex);
@@ -2595,9 +2094,9 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 								node = new TiXmlElement("unk60"); node->SetAttribute("u32", UnsignedToString(val32(section5->unk60), true)); node_section5->LinkEndChild(node);
 
 
-								materialName = "MatTexture_" + UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, true);
-								collada->addTextureMaterial(materialName, "texture_"+ UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, false) +".png");
-								collada_collision->addTextureMaterial(materialName, "texture_" + UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, false) + ".png");
+								materialName = "Mat_" + UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, true);
+								collada->addTextureMaterial(materialName, "texture_"+ UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, true) +".png");
+								collada_collision->addTextureMaterial(materialName, "texture_" + UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, true) + ".png");
 								
 
 								/*
@@ -3045,6 +2544,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						}
 					}
 
+					collada->addTransformOnNode(collada_node, val_float(section->posX), val_float(section->posY), val_float(section->posZ), rotAxisX, rotAxisY, rotAxisZ, rotAngle);
 					collada_collision->addTransformOnNode(collada_collision_node, val_float(section->posX), val_float(section->posY), val_float(section->posZ), rotAxisX, rotAxisY, rotAxisZ, rotAngle);
 				}
 				break;
