@@ -623,8 +623,8 @@ void Collada::addImage(string name, string filename)
 {
 	TiXmlElement* node_image = new TiXmlElement("image");
 	node_library_images->LinkEndChild(node_image);
-	node_image->SetAttribute("id", name);
-	node_image->SetAttribute("name", name);
+	node_image->SetAttribute("id", name + "_texture");
+	node_image->SetAttribute("name", name + "_texture");
 	node_image->SetAttribute("depth", "1");
 
 	TiXmlElement* node_init_from = new TiXmlElement("init_from");
@@ -2237,8 +2237,11 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 								node->SetAttribute("z", FloatToString((float)(int16_t)val16(section52->posZ)));
 								node = new TiXmlElement("Uv");
 								node_section52->LinkEndChild(node);
-								node->SetAttribute("u", FloatToString(((float)val16(section52->uvU)) / 65535.0f));
-								node->SetAttribute("v", FloatToString(((float)val16(section52->uvV)) / 65535.0f));
+								//FIXME: Might be `uv / 0xFFFF * 16.0f` instead
+								float u = (int16_t)val16(section52->uvU) / (float)0xFFF;
+								float v = (int16_t)val16(section52->uvV) / (float)0xFFF;
+								node->SetAttribute("u", FloatToString(u));
+								node->SetAttribute("v", FloatToString(v));
 								node = new TiXmlElement("Color");
 								node_section52->LinkEndChild(node);
 								node->SetAttribute("r", FloatToString((float)section52->colorR / 255.0f));
@@ -2252,8 +2255,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 								vertex.pos_x = (float)(int16_t)val16(section52->posX);
 								vertex.pos_y = (float)(int16_t)val16(section52->posY);
 								vertex.pos_z = (float)(int16_t)val16(section52->posZ);
-								vertex.text_u = ((float)val16(section52->uvU)) / 65535.0f;
-								vertex.text_v = ((float)val16(section52->uvV)) / 65535.0f;
+								vertex.text_u = u;
+								vertex.text_v = v;
 								//in reality ColorRGB give the look like of normal directions, and ColorA look like specular.
 								vertex.color = (section52->colorR << 24) + (section52->colorG << 16) + (section52->colorB << 8) + section52->colorA;
 								listVertex.push_back(vertex);
@@ -2598,7 +2601,6 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 								materialName = "MatTexture_" + UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, true);
 								collada->addTextureMaterial(materialName, "texture_"+ UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, false) +".png");
 								collada_collision->addTextureMaterial(materialName, "texture_" + UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, false) + ".png");
-								
 
 								/*
 								if (emdSubMesh)
