@@ -1201,7 +1201,7 @@ void Swr_Model::save_Xml(string filename, bool show_error)
 		Collada* collada_collision = new Collada();
 		collada_collision->addColorMaterial("Default", "0 0 1 1");
 
-		write_Xml(root, buf, size, name, collada, collada_collision);
+		write_Xml(root, buf, size, name, collada, collada_collision, i);
 
 		doc->SaveFile(name + ".xml");
 		collada->save(name + ".dae");
@@ -1220,7 +1220,7 @@ void Swr_Model::save_Xml(string filename, bool show_error)
 /*-------------------------------------------------------------------------------\
 |                             write_Xml						                     |
 \-------------------------------------------------------------------------------*/
-void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size, string filename, Collada* collada, Collada* collada_collision)
+void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size, string filename, Collada* collada, Collada* collada_collision, size_t indexModel)
 {
 	bool XMLTEST_SoKeepSmaller = false;
 	bool XMLTEST_UseHierarchy = true;
@@ -1472,7 +1472,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 		//-----------------------  Malt /AltN :
 
-		string modelName = nameFromFilenameNoExtension(filename) + "_" + std::to_string(i);
+		string modelName = nameFromFilenameNoExtension(filename) + "_" + std::to_string( ((indexModel != (size_t)-1) ? indexModel : i) );
 
 		TiXmlElement* node_listMalt = new TiXmlElement("ListMalt_Node");
 		if (!XMLTEST_SoKeepSmaller)
