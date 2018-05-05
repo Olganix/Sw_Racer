@@ -2096,7 +2096,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 								node = new TiXmlElement("unk60"); node->SetAttribute("u32", UnsignedToString(val32(section5->unk60), true)); node_section5->LinkEndChild(node);
 
 
-								materialName = "Mat_" + UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, true);
+								materialName = "Mat_" + UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, false);
 								collada->addTextureMaterial(materialName, "texture_"+ UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, false) +".png");
 								collada_collision->addTextureMaterial(materialName, "texture_" + UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, false) + ".png");
 
