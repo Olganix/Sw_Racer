@@ -430,37 +430,14 @@ void Collada::addGeometry(string name, std::vector<EMDVertex> &vertices, std::ve
 	node_mesh->LinkEndChild(node_vertices);
 	node_vertices->SetAttribute("id", name + "_vertices");
 
-	size_t incOffset = 0;
 	if (havePosition)
 	{
 		TiXmlElement * node_input = new TiXmlElement("input");
 		node_vertices->LinkEndChild(node_input);
 		node_input->SetAttribute("semantic", "POSITION");
 		node_input->SetAttribute("source", "#" + name + "_positions");
-		++incOffset;
 	}
 
-	if (haveUv)
-	{
-		TiXmlElement* node_input = new TiXmlElement("input");
-		node_vertices->LinkEndChild(node_input);
-		node_input->SetAttribute("semantic", "TEXCOORD");
-		node_input->SetAttribute("offset", incOffset);
-		node_input->SetAttribute("set", "0");
-		node_input->SetAttribute("source", "#" + name + "_uv");
-		++incOffset;
-	}
-
-	if (haveColor)
-	{
-		TiXmlElement* node_input = new TiXmlElement("input");
-		node_vertices->LinkEndChild(node_input);
-		node_input->SetAttribute("semantic", "COLOR");
-		node_input->SetAttribute("offset", incOffset);
-		node_input->SetAttribute("set", "0");
-		node_input->SetAttribute("source", "#" + name + "_color");
-		++incOffset;
-	}
 
 	/////////////////////////////////////////////////////
 
@@ -481,6 +458,26 @@ void Collada::addGeometry(string name, std::vector<EMDVertex> &vertices, std::ve
 		node_input->SetAttribute("offset", "0");
 		node_input->SetAttribute("semantic", "VERTEX");
 		node_input->SetAttribute("source", "#" + name + "_vertices");
+
+		if (haveColor)
+		{
+			TiXmlElement* node_input = new TiXmlElement("input");
+			node_polylist->LinkEndChild(node_input);
+			node_input->SetAttribute("semantic", "COLOR");
+			node_input->SetAttribute("offset", "0");
+			node_input->SetAttribute("set", "0");
+			node_input->SetAttribute("source", "#" + name + "_color");
+		}
+
+		if (haveUv)
+		{
+			TiXmlElement* node_input = new TiXmlElement("input");
+			node_polylist->LinkEndChild(node_input);
+			node_input->SetAttribute("offset", "0");
+			node_input->SetAttribute("semantic", "TEXCOORD");
+			node_input->SetAttribute("set", "0");
+			node_input->SetAttribute("source", "#" + name + "_uv");
+		}
 
 		TiXmlElement* node_p = new TiXmlElement("p");
 		node_polylist->LinkEndChild(node_p);
@@ -521,7 +518,7 @@ void Collada::addColorMaterial(string name, string color)
 	listMaterialNames.push_back(name);
 
 	addEffect(name, false, "", color);
-	addMaterial(name, name);
+	addMaterial(name, name + "_effect");
 }
 
 
@@ -567,15 +564,6 @@ void Collada::makeInstanceGeometryOnNode(TiXmlElement* node, string instanceGeom
 		node_technique_common->LinkEndChild(node_instance_material);
 		node_instance_material->SetAttribute("symbol", materialName);
 		node_instance_material->SetAttribute("target", "#" + materialName);
-
-		if (haveTexture)
-		{
-			TiXmlElement* node_bind_vertex_input = new TiXmlElement("bind_vertex_input");
-			node_instance_material->LinkEndChild(node_bind_vertex_input);
-			node_bind_vertex_input->SetAttribute("semantic", "TEX0");
-			node_bind_vertex_input->SetAttribute("input_semantic", "TEXCOORD");
-			node_bind_vertex_input->SetAttribute("input_set", "0");
-		}
 	}
 }
 /*-------------------------------------------------------------------------------\
@@ -643,43 +631,45 @@ void Collada::addEffect(string name, bool isSampler2D, string nameTexture, strin
 	TiXmlElement* node_profile_COMMON = new TiXmlElement("profile_COMMON");
 	node_effect->LinkEndChild(node_profile_COMMON);
 
-	TiXmlElement* node_newparam = new TiXmlElement("newparam");
-	node_profile_COMMON->LinkEndChild(node_newparam);
-	node_newparam->SetAttribute("sid", name + "_surface");
+	if (isSampler2D)
+	{
 
-	TiXmlElement* node_surface = new TiXmlElement("surface");
-	node_newparam->LinkEndChild(node_surface);
-	node_surface->SetAttribute("type", "2D");
+		TiXmlElement* node_newparam = new TiXmlElement("newparam");
+		node_profile_COMMON->LinkEndChild(node_newparam);
+		node_newparam->SetAttribute("sid", name + "_surface");
 
-	TiXmlElement* node_init_from = new TiXmlElement("init_from");
-	node_surface->LinkEndChild(node_init_from);
-	node_init_from->LinkEndChild(new TiXmlText(name +"_texture"));
+		TiXmlElement* node_surface = new TiXmlElement("surface");
+		node_newparam->LinkEndChild(node_surface);
+		node_surface->SetAttribute("type", "2D");
 
-	TiXmlElement* node_format = new TiXmlElement("format");
-	node_surface->LinkEndChild(node_format);
-	node_format->LinkEndChild(new TiXmlText("A8R8G8B8"));
-
-	///////////////
+		TiXmlElement* node_init_from = new TiXmlElement("init_from");
+		node_surface->LinkEndChild(node_init_from);
+		node_init_from->LinkEndChild(new TiXmlText(name +"_texture"));
 
 
-	node_newparam = new TiXmlElement("newparam");
-	node_profile_COMMON->LinkEndChild(node_newparam);
-	node_newparam->SetAttribute("sid", name + "_sampler");
+		///////////////
 
-	TiXmlElement* node_sampler2D = new TiXmlElement("sampler2D");
-	node_newparam->LinkEndChild(node_sampler2D);
 
-	TiXmlElement* node_source = new TiXmlElement("source");
-	node_sampler2D->LinkEndChild(node_source);
-	node_source->LinkEndChild(new TiXmlText(name + "_surface"));
+		node_newparam = new TiXmlElement("newparam");
+		node_profile_COMMON->LinkEndChild(node_newparam);
+		node_newparam->SetAttribute("sid", name + "_sampler");
 
-	TiXmlElement* node_minfilter = new TiXmlElement("minfilter");
-	node_sampler2D->LinkEndChild(node_minfilter);
-	node_minfilter->LinkEndChild(new TiXmlText("LINEAR_MIPMAP_LINEAR"));
+		TiXmlElement* node_sampler2D = new TiXmlElement("sampler2D");
+		node_newparam->LinkEndChild(node_sampler2D);
 
-	TiXmlElement* node_magfilter = new TiXmlElement("magfilter");
-	node_sampler2D->LinkEndChild(node_magfilter);
-	node_magfilter->LinkEndChild(new TiXmlText("LINEAR"));
+		TiXmlElement* node_source = new TiXmlElement("source");
+		node_sampler2D->LinkEndChild(node_source);
+		node_source->LinkEndChild(new TiXmlText(name + "_surface"));
+
+		TiXmlElement* node_minfilter = new TiXmlElement("minfilter");
+		node_sampler2D->LinkEndChild(node_minfilter);
+		node_minfilter->LinkEndChild(new TiXmlText("LINEAR_MIPMAP_LINEAR"));
+
+		TiXmlElement* node_magfilter = new TiXmlElement("magfilter");
+		node_sampler2D->LinkEndChild(node_magfilter);
+		node_magfilter->LinkEndChild(new TiXmlText("LINEAR"));
+
+	}
 
 	///////////////
 
@@ -731,7 +721,7 @@ void Collada::addEffect(string name, bool isSampler2D, string nameTexture, strin
 	node_blinn->LinkEndChild(node_shininess);
 	TiXmlElement* node_float = new TiXmlElement("float");
 	node_shininess->LinkEndChild(node_float);
-	node_float->LinkEndChild(new TiXmlText("0.3"));
+	node_float->LinkEndChild(new TiXmlText("50"));
 
 	TiXmlElement* node_reflective = new TiXmlElement("reflective");
 	node_blinn->LinkEndChild(node_reflective);
