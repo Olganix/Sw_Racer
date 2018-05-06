@@ -154,6 +154,9 @@ void EMDVertex::getColorFromRGBA_str(string values)
 \-------------------------------------------------------------------------------*/
 Collada::Collada()
 {
+	node_library_cameras = node_library_lights = node_library_images = node_library_effects = node_library_materials = 0;
+	
+	
 	doc = new TiXmlDocument();
 	TiXmlDeclaration* decl = new TiXmlDeclaration("1.0", "UTF-8", "");
 	doc->LinkEndChild(decl);
@@ -166,6 +169,43 @@ Collada::Collada()
 	TiXmlElement* node_asset = new TiXmlElement("asset");
 	root->LinkEndChild(node_asset);
 
+
+	
+	TiXmlElement* node_contributor = new TiXmlElement("contributor");
+	node_asset->LinkEndChild(node_contributor);
+
+	TiXmlElement* node_author = new TiXmlElement("author");
+	node_contributor->LinkEndChild(node_author);
+	node_author->LinkEndChild(new TiXmlText("Olganix, JayFoxRox"));
+
+	TiXmlElement* node_authoring_tool = new TiXmlElement("authoring_tool");
+	node_contributor->LinkEndChild(node_authoring_tool);
+	node_authoring_tool->LinkEndChild(new TiXmlText("Swr_Racer"));
+
+	TiXmlElement* node_source_data = new TiXmlElement("source_data");
+	node_contributor->LinkEndChild(node_source_data);
+	node_source_data->LinkEndChild(new TiXmlText("https://github.com/Olganix/Sw_Racer"));
+
+
+	time_t rawtime;
+	struct tm * timeinfo;
+	char buffer[80];
+
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+
+	strftime(buffer, sizeof(buffer), "%Y-%m-%dT%I:%M:%S", timeinfo);
+	std::string str(buffer);
+
+
+	TiXmlElement* node_created = new TiXmlElement("created");
+	node_asset->LinkEndChild(node_created);
+	node_created->LinkEndChild(new TiXmlText(str));
+
+	TiXmlElement* node_modified = new TiXmlElement("modified");
+	node_asset->LinkEndChild(node_modified);
+	node_modified->LinkEndChild(new TiXmlText(str));
+
 	TiXmlElement* node_unit = new TiXmlElement("unit");
 	node_asset->LinkEndChild(node_unit);
 	node_unit->SetAttribute("meter", "0.01");
@@ -176,20 +216,6 @@ Collada::Collada()
 	node_up_axis->LinkEndChild(new TiXmlText("Z_UP"));
 
 
-	node_library_cameras = new TiXmlElement("library_cameras");
-	root->LinkEndChild(node_library_cameras);
-
-	node_library_lights = new TiXmlElement("library_lights");
-	root->LinkEndChild(node_library_lights);
-
-	node_library_images = new TiXmlElement("library_images");
-	root->LinkEndChild(node_library_images);
-
-	node_library_effects = new TiXmlElement("library_effects");
-	root->LinkEndChild(node_library_effects);
-
-	node_library_materials = new TiXmlElement("library_materials");
-	root->LinkEndChild(node_library_materials);
 
 	node_geometries = new TiXmlElement("library_geometries");
 	root->LinkEndChild(node_geometries);
@@ -203,9 +229,6 @@ Collada::Collada()
 	node_visual_scene->SetAttribute("id", "VisualSceneNode");
 	node_visual_scene->SetAttribute("name", "untitled");
 
-
-	node_library_animations = new TiXmlElement("library_animations");
-	root->LinkEndChild(node_library_animations);
 
 	node_scene = new TiXmlElement("scene");
 	root->LinkEndChild(node_scene);
@@ -609,6 +632,8 @@ void Collada::addTransformOnNode(TiXmlElement* node, float transX, float transY,
 \-------------------------------------------------------------------------------*/
 void Collada::addImage(string name, string filename)
 {
+	checkRootFor("library_images");
+	
 	TiXmlElement* node_image = new TiXmlElement("image");
 	node_library_images->LinkEndChild(node_image);
 	node_image->SetAttribute("id", name);
@@ -624,6 +649,8 @@ void Collada::addImage(string name, string filename)
 \-------------------------------------------------------------------------------*/
 void Collada::addEffect(string name, bool isSampler2D, string nameTexture, string color)
 {
+	checkRootFor("library_effects");
+
 	TiXmlElement* node_effect = new TiXmlElement("effect");
 	node_library_effects->LinkEndChild(node_effect);
 	node_effect->SetAttribute("id", name +"_effect");
@@ -759,6 +786,8 @@ void Collada::addEffect(string name, bool isSampler2D, string nameTexture, strin
 \-------------------------------------------------------------------------------*/
 void Collada::addMaterial(string name, string nameEffect)
 {
+	checkRootFor("library_materials");
+
 	TiXmlElement* node_material = new TiXmlElement("material");
 	node_library_materials->LinkEndChild(node_material);
 	node_material->SetAttribute("id", name);
@@ -768,8 +797,68 @@ void Collada::addMaterial(string name, string nameEffect)
 	node_material->LinkEndChild(node_instance_effect);
 	node_instance_effect->SetAttribute("url", "#" + nameEffect);
 }
+/*-------------------------------------------------------------------------------\
+|                             checkRootFor										 |
+\-------------------------------------------------------------------------------*/
+void Collada::checkRootFor(string tagName)
+{
+	//the problem is the validator don't like to have empty library-xxxxx. So we have to add them if necessary.
 
-
+	if (tagName == "library_images")
+	{
+		if (!node_library_images)
+		{
+			node_library_images = new TiXmlElement("library_images");
+			root->LinkEndChild(node_library_images);
+		}
+		return;
+	}
+	if (tagName == "library_effects")
+	{
+		if (!node_library_effects)
+		{
+			node_library_effects = new TiXmlElement("library_effects");
+			root->LinkEndChild(node_library_effects);
+		}
+		return;
+	}
+	if (tagName == "library_materials")
+	{
+		if (!node_library_materials)
+		{
+			node_library_materials = new TiXmlElement("library_materials");
+			root->LinkEndChild(node_library_materials);
+		}
+		return;
+	}
+	if (tagName == "library_cameras")
+	{
+		if (!node_library_cameras)
+		{
+			node_library_cameras = new TiXmlElement("library_cameras");
+			root->LinkEndChild(node_library_cameras);
+		}
+		return;
+	}
+	if (tagName == "library_lights")
+	{
+		if (!node_library_lights)
+		{
+			node_library_lights = new TiXmlElement("library_lights");
+			root->LinkEndChild(node_library_lights);
+		}
+		return;
+	}
+	if (tagName == "library_animations")
+	{
+		if (!node_library_animations)
+		{
+			node_library_animations = new TiXmlElement("library_animations");
+			root->LinkEndChild(node_library_animations);
+		}
+		return;
+	}
+}
 
 /*-------------------------------------------------------------------------------\
 |                             save												 |
@@ -1444,18 +1533,90 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 		
 		//saddely , it's could have a Malt just after Hend, never referenced (cf Model_115), So we test to add it.
 		// hope the filter on first flags could avoid trouble.
-		//Another problem is for model_001 by checking the first Malt on the last, previously offsets are child of the first. So, we have to reverse the check:
-		std::vector<size_t> reverseCheck_listPointer_AltN;
-		reverseCheck_listPointer_AltN.push_back(offset);					//offset of the first.
+		if (!checkDuplication_Malt_recursion(offset, listPointer_AltN, buf, size, hdr->offset_Section2))
+			listPointer_AltN.push_back(offset);
 
-		size_t nbMalt_tmp = listPointer_AltN.size();
-		for (size_t j = 0; j < nbMalt_tmp; j++)								//check all references, previously gived.
+		//full check to avoid duplications					//Another problem is for model_001 by checking the first Malt on the last, previously offsets are child of the first. So, we have to reverse the check:
 		{
-			if (!checkDuplication_Malt_recursion(listPointer_AltN.at(j), reverseCheck_listPointer_AltN, buf, size, hdr->offset_Section2))
-				reverseCheck_listPointer_AltN.push_back(listPointer_AltN.at(j));
-		}
-		listPointer_AltN = reverseCheck_listPointer_AltN;
+			//make the full list of Child
+			std::vector<size_t> listChildOffset;
 
+			SWR_AltN_Header* hdr_AltN;
+			size_t nbElement = listPointer_AltN.size();
+			for (size_t j = 0; j < nbElement; j++)
+			{
+				if (listPointer_AltN.at(j) == 0)
+					continue;
+
+				hdr_AltN = (SWR_AltN_Header*)(buf + listPointer_AltN.at(j));
+
+				if ((val32(hdr_AltN->flags) & 0x4000) && (val32(hdr_AltN->offset_Childs)))				// 0x5xxx or 0xDxxxx (for 0x3xxx the child are struct_V16)
+				{
+					size_t startoffset_Child_listOffset = val32(hdr_AltN->offset_Childs) + hdr->offset_Section2;
+					uint32_t* listOffsetAltN_Child = (uint32_t*)GetOffsetPtr(buf, startoffset_Child_listOffset, true);
+
+					size_t nbChilds = val32(hdr_AltN->nb_Childs);
+					size_t offset_tmp;
+					for (size_t k = 0; k < nbChilds; k++)
+					{
+						offset_tmp = val32(listOffsetAltN_Child[k]);
+						if (offset_tmp == 0)
+							continue;
+
+						listChildOffset.push_back(offset_tmp + hdr->offset_Section2);
+					}
+				}
+			}
+
+			//second step for recursive (because we don't want main offset inside the list of childs)
+			for (size_t j = 0; j < listChildOffset.size(); j++)
+			{
+				hdr_AltN = (SWR_AltN_Header*)(buf + listChildOffset.at(j));
+
+				if ((val32(hdr_AltN->flags) & 0x4000) && (val32(hdr_AltN->offset_Childs)))				// 0x5xxx or 0xDxxxx (for 0x3xxx the child are struct_V16)
+				{
+					size_t startoffset_Child_listOffset = val32(hdr_AltN->offset_Childs) + hdr->offset_Section2;
+					uint32_t* listOffsetAltN_Child = (uint32_t*)GetOffsetPtr(buf, startoffset_Child_listOffset, true);
+
+					size_t nbChilds = val32(hdr_AltN->nb_Childs);
+					size_t offset_tmp;
+					for (size_t k = 0; k < nbChilds; k++)
+					{
+						offset_tmp = val32(listOffsetAltN_Child[k]);
+						if (offset_tmp == 0)
+							continue;
+
+						listChildOffset.push_back(offset_tmp + hdr->offset_Section2);
+					}
+				}
+			}
+
+
+			//now, we can check if the offset is one of child of another.
+			bool isfound = false;
+			size_t offset_tmp = 0;
+			size_t nbChilds = listChildOffset.size();
+			for (size_t j = 0; j < listPointer_AltN.size(); j++)
+			{
+				offset_tmp = listPointer_AltN.at(j);
+				isfound = false;
+				for (size_t k = 0; k < nbChilds; k++)
+				{
+					if (offset_tmp == listChildOffset.at(k))
+					{
+						isfound = true;
+						break;
+					}
+				}
+				if (isfound)
+				{
+					listPointer_AltN.erase(listPointer_AltN.begin() + j);				//if it's the case, we remove it from the main list.
+					j--;
+				}
+			}
+		}
+
+		
 
 
 

@@ -688,6 +688,7 @@ private:
 	void addImage(string name, string filename);
 	void addEffect(string name, bool isSampler2D = true, string nameTexture = "", string color = "0 0 0 1");
 	void addMaterial(string name, string nameEffect);
+	void checkRootFor(string tagName);
 };
 
 
