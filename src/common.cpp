@@ -1,6 +1,7 @@
 #include <math.h>
 
 #include "common.h"
+#include "EMO_BaseFile.h"
 
 
 
@@ -179,6 +180,41 @@ namespace Common
 		return "";
 	}
 
+	bool fileCheck(string filename)
+	{
+		FILE *fp = fopen(filename.c_str(), "rb");
+
+		if (fp)
+		{
+			fclose(fp);
+			return true;
+		}
+		return false;
+	}
+
+	std::vector<string> getFilesInFolder(string folderpath)
+	{
+		std::vector<string> listFilename;
+
+		WIN32_FIND_DATAA FindFileData;
+		HANDLE hFind;
+		hFind = FindFirstFileA((folderpath + "\\*.*").c_str(), &FindFileData);
+		if (hFind != INVALID_HANDLE_VALUE)
+		{
+			while (FindNextFileA(hFind, &FindFileData) != 0)
+			{
+				const char *name = FindFileData.cFileName;
+				if (name[0] == '.')
+					continue;
+
+				string str = ToString(name);
+				if(fileCheck(folderpath + "\\" + str))
+					listFilename.push_back(str);
+			};
+			FindClose(hFind);
+		}
+		return listFilename;
+	}
 
 	std::vector<std::string> split(const std::string &text, char sep)
 	{

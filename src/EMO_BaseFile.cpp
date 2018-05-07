@@ -1890,13 +1890,13 @@ uint8_t *EMO_BaseFile::Base64Decode(const std::string &data, size_t *ret_size)
 			}
 		}
 
-		buf[n++] = (st[0] << 2) | (st[1] >> 4);
+		buf[n++] = (uint8_t)((st[0] << 2) | (st[1] >> 4));
 		if (st[2] != std::string::npos)
 		{
-			buf[n++] = (st[1] << 4) | (st[2] >> 2);
+			buf[n++] = (uint8_t)((st[1] << 4) | (st[2] >> 2));
 			if (st[3] != std::string::npos)
 			{
-				buf[n++] = (st[2] << 6) | st[3];
+				buf[n++] = (uint8_t)((st[2] << 6) | st[3]);
 			}
 		}
 

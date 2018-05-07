@@ -77,6 +77,8 @@ namespace Common
 	string nameFromFilenameNoExtension(string filename, bool last_dot = false);
 	string folderFromFilename(string filename);
 	string filenameNoExtension(string filename);
+	bool fileCheck(string filename);
+	std::vector<string> getFilesInFolder(string folderpath);
 	
 	//string
 	std::vector<std::string> split(const std::string &text, char sep);
