@@ -243,6 +243,7 @@ void Collada::addGeometry(string name, std::vector<EMDVertex> &vertices, std::ve
 	string str = "";
 
 	bool havePosition = vertices.at(0).flags & EMD_VTX_FLAG_POS;
+	bool haveNormal = vertices.at(0).flags & EMD_VTX_FLAG_NORM;
 	bool haveUv = vertices.at(0).flags & EMD_VTX_FLAG_TEX;
 	bool haveColor = vertices.at(0).flags & EMD_VTX_FLAG_COLOR;
 
@@ -301,45 +302,55 @@ void Collada::addGeometry(string name, std::vector<EMDVertex> &vertices, std::ve
 	}
 
 
-	/*/////////////////////////////////////////////////////
-
-	node_source = new TiXmlElement("source");
-	node_mesh->LinkEndChild(node_source);
-	node_source->SetAttribute("id", name + "_normals");
-	node_source->SetAttribute("name", name + "_normal");
-
-	node_listFloat = new TiXmlElement("float_array");
-	node_source->LinkEndChild(node_listFloat);
-	node_listFloat->SetAttribute("id", name + "_normals_floats");
-	node_listFloat->SetAttribute("count", "72");
-	node_listFloat->LinkEndChild(new TiXmlText("0 0 1 0 0 1 0 0 1 0 0 1 0 1 0 0 1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 0 0 -1 0 0 -1 0 0 -1 0 0 -1"));
-
-	node_technique_common = new TiXmlElement("technique_common");
-	node_source->LinkEndChild(node_technique_common);
-
-	node_accessor = new TiXmlElement("accessor");
-	node_technique_common->LinkEndChild(node_accessor);
-	node_accessor->SetAttribute("count", "24");
-	node_accessor->SetAttribute("offset", "0");
-	node_accessor->SetAttribute("source", "#"+ name + "_normals_floats");
-	node_accessor->SetAttribute("stride", "3");
-
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "X");
-	node_param->SetAttribute("type", "float");
-
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "Y");
-	node_param->SetAttribute("type", "float");
-
-	node_param = new TiXmlElement("param");
-	node_accessor->LinkEndChild(node_param);
-	node_param->SetAttribute("name", "Z");
-	node_param->SetAttribute("type", "float");
+	/////////////////////////////////////////////////////
 
 
+
+	if (haveNormal)
+	{
+		TiXmlElement* node_source = new TiXmlElement("source");
+		node_mesh->LinkEndChild(node_source);
+		node_source->SetAttribute("id", name + "_normals");
+		node_source->SetAttribute("name", name + "_normals");
+
+		TiXmlElement* node_listFloat = new TiXmlElement("float_array");
+		node_source->LinkEndChild(node_listFloat);
+		node_listFloat->SetAttribute("id", name + "_normals_floats");
+		node_listFloat->SetAttribute("count", nbVertex * 3);
+		str = "";
+		for (size_t i = 0; i < nbVertex; i++)
+		{
+			str += ((i == 0) ? "" : " ") + EMO_BaseFile::FloatToString(vertices.at(i).norm_x);
+			str += " " + EMO_BaseFile::FloatToString(vertices.at(i).norm_y);
+			str += " " + EMO_BaseFile::FloatToString(vertices.at(i).norm_z);
+		}
+		node_listFloat->LinkEndChild(new TiXmlText(str));
+
+		TiXmlElement* node_technique_common = new TiXmlElement("technique_common");
+		node_source->LinkEndChild(node_technique_common);
+
+		TiXmlElement* node_accessor = new TiXmlElement("accessor");
+		node_technique_common->LinkEndChild(node_accessor);
+		node_accessor->SetAttribute("count", nbVertex);
+		node_accessor->SetAttribute("offset", "0");
+		node_accessor->SetAttribute("source", "#" + name + "_normals_floats");
+		node_accessor->SetAttribute("stride", "3");
+
+		TiXmlElement* node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "X");
+		node_param->SetAttribute("type", "float");
+
+		node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "Y");
+		node_param->SetAttribute("type", "float");
+
+		node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "Z");
+		node_param->SetAttribute("type", "float");
+	}
 
 	/////////////////////////////////////////////////////*/
 
@@ -475,16 +486,16 @@ void Collada::addGeometry(string name, std::vector<EMDVertex> &vertices, std::ve
 		node_input->SetAttribute("semantic", "VERTEX");
 		node_input->SetAttribute("source", "#" + name + "_vertices");
 
-		if (haveColor)
+		if (haveNormal)
 		{
 			TiXmlElement* node_input = new TiXmlElement("input");
 			node_polylist->LinkEndChild(node_input);
-			node_input->SetAttribute("semantic", "COLOR");
 			node_input->SetAttribute("offset", "0");
+			node_input->SetAttribute("semantic", "NORMAL");
 			node_input->SetAttribute("set", "0");
-			node_input->SetAttribute("source", "#" + name + "_color");
+			node_input->SetAttribute("source", "#" + name + "_normal");
 		}
-
+		
 		if (haveUv)
 		{
 			TiXmlElement* node_input = new TiXmlElement("input");
@@ -494,6 +505,18 @@ void Collada::addGeometry(string name, std::vector<EMDVertex> &vertices, std::ve
 			node_input->SetAttribute("set", "0");
 			node_input->SetAttribute("source", "#" + name + "_uv");
 		}
+
+		/*
+		if (haveColor)
+		{
+			TiXmlElement* node_input = new TiXmlElement("input");
+			node_polylist->LinkEndChild(node_input);
+			node_input->SetAttribute("semantic", "COLOR");
+			node_input->SetAttribute("offset", "0");
+			node_input->SetAttribute("set", "0");
+			node_input->SetAttribute("source", "#" + name + "_color");
+		}
+		*/
 
 		TiXmlElement* node_p = new TiXmlElement("p");
 		node_polylist->LinkEndChild(node_p);

@@ -366,27 +366,49 @@ std::vector<string> Swr_Model::splitModelFile(string filename, bool show_error)
 void Swr_Model::unsplitModelFile(string folder, bool show_error)
 {
 	//first get the list of file in the folder.
-	string filename_orderedFilesXml = "";
 	std::vector<string> listFilename = getFilesInFolder(folder);
 
-	//filter
-	std::vector<string> listFilenameToCheck = listFilename;
-	listFilename.clear();
+	size_t nbFilenames = listFilename.size();
+	for (size_t i = 0; i < nbFilenames; i++)
+		listFilename.at(i) = folder +"\\"+ listFilename.at(i);
 
+	unsplitModelFile(folder + ".bin", listFilename, show_error);
+}
+/*-------------------------------------------------------------------------------\
+|                             unsplitModelFile			                         |
+\-------------------------------------------------------------------------------*/
+void Swr_Model::unsplitModelFile(string filenameOut, std::vector<string> listFilenameToPack, bool show_error)
+{
+	//filter
+	string filename_orderedFilesXml = "";
+	std::vector<string> listFilenameToCheck = listFilenameToPack;
+	std::vector<string> listFilename;
+	
 	size_t nbFiles = listFilenameToCheck.size();
 	for (size_t i = 0; i < nbFiles; i++)
 	{
-		if (listFilenameToCheck.at(i) == "listFiles.xml")
+		string aa = nameFromFilename(listFilenameToCheck.at(i));
+
+		if (nameFromFilename(listFilenameToCheck.at(i)) == "listFiles.xml")
 		{
-			filename_orderedFilesXml = folder +"\\"+ listFilenameToCheck.at(i);				//there is a special file witch could give the order of files (when emb have filename, so Windows order is'nt good enougth)
-		}else if (extensionFromFilename(listFilenameToCheck.at(i)) == "bin") {
+			filename_orderedFilesXml = listFilenameToCheck.at(i);				//there is a special file witch could give the order of files (when emb have filename, so Windows order is'nt good enougth)
+		}
+		else if (extensionFromFilename(listFilenameToCheck.at(i)) == "bin") {
 			listFilename.push_back(listFilenameToCheck.at(i));
 		}
 	}
 
+	
+
+	
+
+
 	//second read listFiles.xml if exist, to reorder for rebuild (to keep order).
-	if (filename_orderedFilesXml != "")									
+	if (filename_orderedFilesXml != "")
 	{
+		string filename_orderedFilesXml_folder = folderFromFilename(filename_orderedFilesXml);
+		bool justUseFileFromList = (listFilename.size() == 0);
+		
 		TiXmlDocument doc(filename_orderedFilesXml);
 		if (doc.LoadFile())
 		{
@@ -404,11 +426,15 @@ void Swr_Model::unsplitModelFile(string folder, bool show_error)
 					if (xmlNode->QueryStringAttribute("name", &str) != TIXML_SUCCESS)
 						continue;
 
-					listnames.push_back(str);
+					listnames.push_back(filename_orderedFilesXml_folder + str);
 				}
 
-				if (listnames.size())
+				if (justUseFileFromList)
 				{
+					listFilename = listnames;
+
+				}else if (listnames.size()){
+
 					vector<string> newListFiles;
 
 					string currentName = "";
@@ -442,7 +468,7 @@ void Swr_Model::unsplitModelFile(string folder, bool show_error)
 
 	if (listFilename.size() == 0)
 	{
-		printf("error: no file founded into folder : %s\n", folder.c_str());
+		printf("error: no file founded.\n");
 		notifyError();
 	}
 
@@ -453,20 +479,25 @@ void Swr_Model::unsplitModelFile(string folder, bool show_error)
 	std::vector<size_t> listFileBufferSection1_size;
 	std::vector<uint8_t*> listFileBufferSection2;
 	std::vector<size_t> listFileBufferSection2_size;
-	
+
 	uint8_t *buf_tmp;
 	size_t size_tmp = 0;
 	size_t offset = 0;
 
-	size_t size_AllSectiont1= 0;
+	size_t size_AllSectiont1 = 0;
 
 	nbFiles = listFilename.size();
 	for (size_t i = 0; i < nbFiles; i++)
 	{
-		buf_tmp = ReadFile(folder + "\\"+ listFilename.at(i), &size_tmp, show_error);
+		printf("Pack file %s\n", listFilename.at(i).c_str());
+		
+		buf_tmp = ReadFile(listFilename.at(i), &size_tmp, show_error);
 		if (!buf_tmp)
+		{
+			printf("error: file %s can't be read.\n", listFilename.at(i).c_str());
+			notifyError();
 			continue;
-
+		}
 
 		size_t nbModels = val32(*(uint32_t*)(buf_tmp));
 
@@ -521,7 +552,7 @@ void Swr_Model::unsplitModelFile(string folder, bool show_error)
 
 
 
-	//now we can merge them
+																					//now we can merge them
 	buf = new uint8_t[size];
 	if (!buf)
 	{
@@ -556,7 +587,7 @@ void Swr_Model::unsplitModelFile(string folder, bool show_error)
 		size_t sizeSection2 = listFileBufferSection2_size.at(i);
 		memcpy(buf + offsetdata, listFileBufferSection2.at(i), sizeSection2);
 		offsetdata += sizeSection2;
-		
+
 		delete listFileBufferSection1.at(i);								//clean
 		delete listFileBufferSection2.at(i);
 	}
@@ -564,11 +595,12 @@ void Swr_Model::unsplitModelFile(string folder, bool show_error)
 
 
 	//make file
-	bool ret = WriteFileBool(folder + ".bin", buf, size);
+	if (extensionFromFilename(filenameOut) != "bin")
+		filenameOut += ".bin";
+
+	bool ret = WriteFileBool(filenameOut, buf, size);
 	delete[] buf;
 }
-
-
 
 
 
@@ -638,7 +670,7 @@ void Swr_Model::save_Xml(string filename, bool makeTextureList, bool show_error)
 		Collada* collada_collision = new Collada();
 		collada_collision->addColorMaterial("Default", "0 0 1 1");
 
-		write_Xml(root, buf, size, name, collada, collada_collision, i, root_textures);
+		write_Xml(root, buf, size, name, collada, collada_collision, i);
 
 		doc->SaveFile(name + ".xml");
 		collada->save(name + ".dae");
@@ -650,12 +682,6 @@ void Swr_Model::save_Xml(string filename, bool makeTextureList, bool show_error)
 		delete collada_collision;
 	}
 
-	if (doc_textures)
-	{
-		doc_textures->SaveFile((nbFiles > 1) ? (filenameNoExtension(filename) + "\\listTextures.xml") : (filename + "_listTextures.xml"));
-		delete doc_textures;
-	}
-
 	return;
 }
 
@@ -663,7 +689,7 @@ void Swr_Model::save_Xml(string filename, bool makeTextureList, bool show_error)
 /*-------------------------------------------------------------------------------\
 |                             write_Xml						                     |
 \-------------------------------------------------------------------------------*/
-void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size, string filename, Collada* collada, Collada* collada_collision, size_t indexModel, TiXmlElement* root_textures)
+void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size, string filename, Collada* collada, Collada* collada_collision, size_t indexModel)
 {
 	bool XMLTEST_SoKeepSmaller = false;
 	bool XMLTEST_UseHierarchy = true;
@@ -1611,7 +1637,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 								SWR_MODEL_Section5* section5 = (SWR_MODEL_Section5*)GetOffsetPtr(buf, offset, true);
 								offset += sizeof(SWR_MODEL_Section5);
-
+								size_t textureIndex = val32(section5->textureMaskAndIndex) & 0x00FFFFFF;
+								string textureIndex_str = (textureIndex != 0xFFFFFF) ? std::to_string(textureIndex) : "empty";
 
 								TiXmlElement* node_section5 = new TiXmlElement("Section5");
 								node_section4->LinkEndChild(node_section5);
@@ -1633,64 +1660,20 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 								node = new TiXmlElement("unk26"); node->SetAttribute("u16", UnsignedToString(val16(section5->unk26), true)); node_section5->LinkEndChild(node);
 								node = new TiXmlElement("unk48"); node->SetAttribute("u32", UnsignedToString(val32(section5->unk48), true)); node_section5->LinkEndChild(node);
 								node = new TiXmlElement("textureMask"); node->SetAttribute("u8", UnsignedToString((val32(section5->textureMaskAndIndex) >> 24) & 0xFF, true)); node_section5->LinkEndChild(node);
-								node = new TiXmlElement("textureIndex"); node->SetAttribute("u24", UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, false)); node_section5->LinkEndChild(node);
+								node = new TiXmlElement("textureIndex"); node->SetAttribute("u24", textureIndex_str); node_section5->LinkEndChild(node);
 								node = new TiXmlElement("unk60"); node->SetAttribute("u32", UnsignedToString(val32(section5->unk60), true)); node_section5->LinkEndChild(node);
 
-								size_t textureIndex = val32(section5->textureMaskAndIndex) & 0x00FFFFFF;
-								materialName = "Mat_" + UnsignedToString(textureIndex, false);
-								collada->addTextureMaterial(materialName, "texture_"+ UnsignedToString(textureIndex, false) +".png");
-								collada_collision->addTextureMaterial(materialName, "texture_" + UnsignedToString(textureIndex, false) + ".png");
+								
+								materialName = "Mat_" + textureIndex_str;
+								collada->addTextureMaterial(materialName, "texture_"+ textureIndex_str +".png");
+								collada_collision->addTextureMaterial(materialName, "texture_" + textureIndex_str + ".png");
 
-
-								if (root_textures)
+								if(section3->nbElementV52==0)
 								{
-									bool isfound = false;
-									size_t index_tmp = 0;
-									for (node = root_textures->FirstChildElement("Section5"); node; node = node->NextSiblingElement("Section5"))
-									{
-										node->FirstChildElement("textureIndex")->QueryUnsignedAttribute("u24", &index_tmp);
-										if (index_tmp == textureIndex)
-										{
-											isfound = true;
-											break;
-										}
-									}
-									if (!isfound)
-									{
-										TiXmlElement* node_section5_2 = new TiXmlElement("Section5");
-										root_textures->LinkEndChild(node_section5_2);
-
-										node = new TiXmlElement("unk0"); node->SetAttribute("u32", UnsignedToString(val32(section5->unk0), true)); node_section5_2->LinkEndChild(node);
-										node = new TiXmlElement("unk4"); node->SetAttribute("u16", UnsignedToString(val16(section5->unk4), true)); node_section5_2->LinkEndChild(node);
-										node = new TiXmlElement("unk6"); node->SetAttribute("u16", UnsignedToString(val16(section5->unk6), true)); node_section5_2->LinkEndChild(node);
-										node = new TiXmlElement("unk8_0"); node->SetAttribute("u16", UnsignedToString(val16(section5->unk8[0]), true)); node_section5_2->LinkEndChild(node);
-										node = new TiXmlElement("unk8_1"); node->SetAttribute("u16", UnsignedToString(val16(section5->unk8[1]), true)); node_section5_2->LinkEndChild(node);
-										node = new TiXmlElement("unk12"); node->SetAttribute("u8", UnsignedToString(section5->unk12, true)); node_section5_2->LinkEndChild(node);
-										node = new TiXmlElement("unk13"); node->SetAttribute("u8", UnsignedToString(section5->unk13, true)); node_section5_2->LinkEndChild(node);
-										node = new TiXmlElement("unk14_0"); node->SetAttribute("u8", UnsignedToString(section5->unk14[0], true)); node_section5_2->LinkEndChild(node);
-										node = new TiXmlElement("unk14_1"); node->SetAttribute("u8", UnsignedToString(section5->unk14[1], true)); node_section5_2->LinkEndChild(node);
-										node = new TiXmlElement("unk16"); node->SetAttribute("u16", UnsignedToString(val16(section5->unk16), true)); node_section5_2->LinkEndChild(node);
-										node = new TiXmlElement("unk18"); node->SetAttribute("u16", UnsignedToString(val16(section5->unk18), true)); node_section5_2->LinkEndChild(node);
-										node = new TiXmlElement("unk20"); node->SetAttribute("u16", UnsignedToString(val16(section5->unk20), true)); node_section5_2->LinkEndChild(node);
-										node = new TiXmlElement("unk22"); node->SetAttribute("u16", UnsignedToString(val16(section5->unk22), true)); node_section5_2->LinkEndChild(node);
-										node = new TiXmlElement("unk24"); node->SetAttribute("u16", UnsignedToString(val16(section5->unk24), true)); node_section5_2->LinkEndChild(node);
-										node = new TiXmlElement("unk26"); node->SetAttribute("u16", UnsignedToString(val16(section5->unk26), true)); node_section5_2->LinkEndChild(node);
-										node = new TiXmlElement("unk48"); node->SetAttribute("u32", UnsignedToString(val32(section5->unk48), true)); node_section5_2->LinkEndChild(node);
-										node = new TiXmlElement("textureMask"); node->SetAttribute("u8", UnsignedToString((val32(section5->textureMaskAndIndex) >> 24) & 0xFF, true)); node_section5_2->LinkEndChild(node);
-										node = new TiXmlElement("textureIndex"); node->SetAttribute("u24", UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, false)); node_section5_2->LinkEndChild(node);
-										node = new TiXmlElement("unk60"); node->SetAttribute("u32", UnsignedToString(val32(section5->unk60), true)); node_section5_2->LinkEndChild(node);
-									}
-								}
-
-								/*
-								if (emdSubMesh)
-								{
-									
-								}else {
 									printf("Warning/Error: there is a Section5 with a effective textureIndex, but there is no Visual Vertex (Section52). strange ...\n");
 									notifyError();
 								}
-								*/
+								
 
 								
 
@@ -2377,6 +2360,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 						SWR_MODEL_Section5* section5 = (SWR_MODEL_Section5*)GetOffsetPtr(buf, offset, true);
 						offset += sizeof(SWR_MODEL_Section5);
+						size_t textureIndex = val32(section5->textureMaskAndIndex) & 0x00FFFFFF;
+						string textureIndex_str = (textureIndex != 0xFFFFFF) ? std::to_string(textureIndex) : "empty";
 
 
 						TiXmlElement* node_section5 = new TiXmlElement("Section5");
@@ -2400,7 +2385,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						node = new TiXmlElement("unk48"); node->SetAttribute("u32", UnsignedToString(val32(section5->unk48), true)); node_section5->LinkEndChild(node);
 						node = new TiXmlElement("unk52"); node->SetAttribute("u32", UnsignedToString(val32(section5->unk52), true)); node_section5->LinkEndChild(node);						
 						node = new TiXmlElement("textureMask"); node->SetAttribute("u8", UnsignedToString((val32(section5->textureMaskAndIndex) >> 24) & 0xFF, true)); node_section5->LinkEndChild(node);
-						node = new TiXmlElement("textureIndex"); node->SetAttribute("u24", UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, false)); node_section5->LinkEndChild(node);
+						node = new TiXmlElement("textureIndex"); node->SetAttribute("u24", textureIndex_str); node_section5->LinkEndChild(node);
 						node = new TiXmlElement("unk60"); node->SetAttribute("u32", UnsignedToString(val32(section5->unk60), true)); node_section5->LinkEndChild(node);
 
 						for (size_t m = 0; m < 5; m++)
@@ -2429,49 +2414,6 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 							node = new TiXmlElement("unk12"); node->SetAttribute("u16", UnsignedToString(val16(section5_b->unk12), true)); node_section5b->LinkEndChild(node);
 							node = new TiXmlElement("unk14"); node->SetAttribute("u16", UnsignedToString(val16(section5_b->unk14), true)); node_section5b->LinkEndChild(node);
 						}
-
-						size_t textureIndex = val32(section5->textureMaskAndIndex) & 0x00FFFFFF;
-
-						if (root_textures)
-						{
-							bool isfound = false;
-							size_t index_tmp = 0;
-							for (node = root_textures->FirstChildElement("Section5"); node; node = node->NextSiblingElement("Section5"))
-							{
-								node->FirstChildElement("textureIndex")->QueryUnsignedAttribute("u24", &index_tmp);
-								if (index_tmp == textureIndex)
-								{
-									isfound = true;
-									break;
-								}
-							}
-							if (!isfound)
-							{
-								TiXmlElement* node_section5_2 = new TiXmlElement("Section5");
-								root_textures->LinkEndChild(node_section5_2);
-
-								node = new TiXmlElement("unk0"); node->SetAttribute("u32", UnsignedToString(val32(section5->unk0), true)); node_section5_2->LinkEndChild(node);
-								node = new TiXmlElement("unk4"); node->SetAttribute("u16", UnsignedToString(val16(section5->unk4), true)); node_section5_2->LinkEndChild(node);
-								node = new TiXmlElement("unk6"); node->SetAttribute("u16", UnsignedToString(val16(section5->unk6), true)); node_section5_2->LinkEndChild(node);
-								node = new TiXmlElement("unk8_0"); node->SetAttribute("u16", UnsignedToString(val16(section5->unk8[0]), true)); node_section5_2->LinkEndChild(node);
-								node = new TiXmlElement("unk8_1"); node->SetAttribute("u16", UnsignedToString(val16(section5->unk8[1]), true)); node_section5_2->LinkEndChild(node);
-								node = new TiXmlElement("unk12"); node->SetAttribute("u8", UnsignedToString(section5->unk12, true)); node_section5_2->LinkEndChild(node);
-								node = new TiXmlElement("unk13"); node->SetAttribute("u8", UnsignedToString(section5->unk13, true)); node_section5_2->LinkEndChild(node);
-								node = new TiXmlElement("unk14_0"); node->SetAttribute("u8", UnsignedToString(section5->unk14[0], true)); node_section5_2->LinkEndChild(node);
-								node = new TiXmlElement("unk14_1"); node->SetAttribute("u8", UnsignedToString(section5->unk14[1], true)); node_section5_2->LinkEndChild(node);
-								node = new TiXmlElement("unk16"); node->SetAttribute("u16", UnsignedToString(val16(section5->unk16), true)); node_section5_2->LinkEndChild(node);
-								node = new TiXmlElement("unk18"); node->SetAttribute("u16", UnsignedToString(val16(section5->unk18), true)); node_section5_2->LinkEndChild(node);
-								node = new TiXmlElement("unk20"); node->SetAttribute("u16", UnsignedToString(val16(section5->unk20), true)); node_section5_2->LinkEndChild(node);
-								node = new TiXmlElement("unk22"); node->SetAttribute("u16", UnsignedToString(val16(section5->unk22), true)); node_section5_2->LinkEndChild(node);
-								node = new TiXmlElement("unk24"); node->SetAttribute("u16", UnsignedToString(val16(section5->unk24), true)); node_section5_2->LinkEndChild(node);
-								node = new TiXmlElement("unk26"); node->SetAttribute("u16", UnsignedToString(val16(section5->unk26), true)); node_section5_2->LinkEndChild(node);
-								node = new TiXmlElement("unk48"); node->SetAttribute("u32", UnsignedToString(val32(section5->unk48), true)); node_section5_2->LinkEndChild(node);
-								node = new TiXmlElement("textureMask"); node->SetAttribute("u8", UnsignedToString((val32(section5->textureMaskAndIndex) >> 24) & 0xFF, true)); node_section5_2->LinkEndChild(node);
-								node = new TiXmlElement("textureIndex"); node->SetAttribute("u24", UnsignedToString(val32(section5->textureMaskAndIndex) & 0x00FFFFFF, false)); node_section5_2->LinkEndChild(node);
-								node = new TiXmlElement("unk60"); node->SetAttribute("u32", UnsignedToString(val32(section5->unk60), true)); node_section5_2->LinkEndChild(node);
-							}
-						}
-						
 					}
 				}
 

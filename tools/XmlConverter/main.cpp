@@ -69,7 +69,7 @@ Press Enter to continue.\n");
 
 				if (extensionb == "bin")
 				{
-					if (nameb.find("model") != std::string::npos)				//it's a model
+					if (toLowerCase(nameb).find("model") != std::string::npos)				//it's a model
 					{
 						Swr_Model* model = new Swr_Model();
 						model->save_Xml(filename +"\\"+ filenameb, false);

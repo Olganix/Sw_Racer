@@ -591,10 +591,11 @@ public:
 	size_t getNumberModelInFile(string filename, bool show_error);
 	std::vector<string> splitModelFile(string filename, bool show_error);
 	void unsplitModelFile(string folder, bool show_error);
+	void unsplitModelFile(string filenameOut, std::vector<string> listFilenameToPack, bool show_error);
 
 	//debug version
 	void save_Xml(string filename, bool makeTextureList, bool show_error = true);
-	void write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size, string filename, Collada* collada, Collada* collada_collision, size_t indexModel = (size_t)-1, TiXmlElement* root_textures = 0);
+	void write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size, string filename, Collada* collada, Collada* collada_collision, size_t indexModel = (size_t)-1);
 
 	void save_Coloration(string filename, bool show_error = false);		//create a file for wxHexEditor, for add tag and color on section of the file.
 	void write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_t size);

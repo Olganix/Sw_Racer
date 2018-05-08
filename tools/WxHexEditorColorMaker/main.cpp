@@ -54,10 +54,13 @@ Press Enter to continue.\n");
 		/////////////////////////////////////////////////////////////
 		if (extension == "bin")
 		{
-			printf("Start with file :%s.\nPlease Wait ...\n", filename.c_str());
-			
-			Swr_Model* model = new Swr_Model();
-			model->save_Coloration(filename);
+			if (toLowerCase(nameFromFilename(filename)).find("model") != std::string::npos)				//it's a model
+			{
+				printf("Start with file :%s.\nPlease Wait ...\n", filename.c_str());
+
+				Swr_Model* model = new Swr_Model();
+				model->save_Coloration(filename);
+			}
 		}
 	}
 

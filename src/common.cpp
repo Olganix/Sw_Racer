@@ -227,7 +227,16 @@ namespace Common
 		tokens.push_back(text.substr(start));
 		return tokens;
 	}
-
+	string toLowerCase(string str)
+	{
+		std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+		return str;
+	}
+	string toUpperCase(string str)
+	{
+		std::transform(str.begin(), str.end(), str.begin(), ::toupper);
+		return str;
+	}
 
 
 

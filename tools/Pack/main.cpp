@@ -17,8 +17,8 @@ int main(int argc, char** argv)
 printf("This tool is for extract/repack some files of StarwarsRacer,\n\
  Usage: 'Pack.exe [options] file.bin ...'\n\
  Files formats supported : bin for model ('model' must be inside the filename).\n\
- Notice: a listFiles.xml will be generated. it's to keep the same order for repack.\n\
- Options : '-NoWait', '-AlwaysWait', '-WaitOnError' (default), or '-WaitOnWarning'.\n\
+ Notice: a listFiles.xml will be generated. it's to keep the same order for repack. You also use 'pack listFiles.xml' to add directly all file inside.\n\
+ Options : '-NoWait', '-AlwaysWait', '-WaitOnError' (default), or '-WaitOnWarning' or '--out filenameToCreate'.\n\
 *******************************************************************\n\
 Press Enter to continue.\n");
 		getchar();
@@ -35,7 +35,55 @@ Press Enter to continue.\n");
 	}
 
 
+	//serach for options
+	string filenameToCreate = "";
 	size_t nbArg = arguments.size();
+	for (size_t i = 0; i < nbArg; i++)
+	{
+		if (arguments.at(i) == "--out")
+		{
+			arguments.erase(arguments.begin() + i);
+			--nbArg;
+
+			if (i < nbArg)
+			{
+				filenameToCreate = arguments.at(i);
+
+				arguments.erase(arguments.begin() + i);
+				--nbArg;
+				--i;
+			}
+		}
+	}
+
+
+
+	if (arguments.size() == 0)
+	{
+		printf("Error not enougth arguments.\n");
+		notifyError();
+		waitOnEnd();
+		return 1;
+	}
+
+
+
+	if (filenameToCreate.length()!=0)										//case "--out filenameToCreate listFiles.xml" or "--out filenameToCreate fileToPack1.bin fileToPack2.bin fileToPack3.bin ..."
+	{
+		if (toLowerCase(filenameToCreate).find("model") != std::string::npos)				//it's a model
+		{
+			Swr_Model* model = new Swr_Model();
+			model->unsplitModelFile(filenameToCreate, arguments, true);
+			delete model;
+		}
+
+		printf("finished.\n");
+		waitOnEnd();
+		return 0;
+	}
+
+
+	nbArg = arguments.size();
 	for (size_t i = 0; i < nbArg; i++)
 	{
 		string filename = arguments.at(i);
@@ -47,18 +95,17 @@ Press Enter to continue.\n");
 
 		if (extension == "bin")											//it's a file to unpack
 		{
-			if (name.find("model") != std::string::npos)				//it's a model
+			if (toLowerCase(name).find("model") != std::string::npos)				//it's a model
 			{
 				Swr_Model* model = new Swr_Model();
 				model->splitModelFile(filename, true);
 				delete model;
 			}
 
-			//todo texture.
 
 		}else if (extension == "") {									//it's a folder to pack
 			
-			if (name.find("model") != std::string::npos)				//it's a model
+			if (toLowerCase(name).find("model") != std::string::npos)				//it's a model
 			{
 				Swr_Model* model = new Swr_Model();
 				model->unsplitModelFile(filename, true);

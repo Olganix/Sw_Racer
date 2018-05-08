@@ -82,6 +82,8 @@ namespace Common
 	
 	//string
 	std::vector<std::string> split(const std::string &text, char sep);
+	string toLowerCase(string str);
+	string toUpperCase(string str);
 
 	//math
 	void decomposition4x4(double* transformMatrix, double* resultPosOrientScaleMatrix); //posOrientScaleMatrix is 3x4, orient is a quaternion informations, TransformMatrix is 4x4
