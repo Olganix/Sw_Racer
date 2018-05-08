@@ -1,5 +1,6 @@
 /*
  * Dirent interface for Microsoft Visual Studio
+ * Version 1.23.1
  *
  * Copyright (C) 2006-2012 Toni Ronkko
  * This file is part of dirent.  Dirent may be freely distributed
@@ -298,7 +299,7 @@ static void _wrewinddir (_WDIR* dirp);
 
 static int scandir (const char *dirname, struct dirent ***namelist,
     int (*filter)(const struct dirent*),
-    int (*compare)(const void *, const void *));
+    int (*compare)(const struct dirent**, const struct dirent**));
 
 static int alphasort (const struct dirent **a, const struct dirent **b);
 
@@ -876,7 +877,7 @@ scandir(
     const char *dirname,
     struct dirent ***namelist,
     int (*filter)(const struct dirent*),
-    int (*compare)(const void*, const void*))
+    int (*compare)(const struct dirent**, const struct dirent**))
 {
     struct dirent **files = NULL;
     size_t size = 0;
@@ -964,7 +965,8 @@ scandir(
                      * End of directory stream reached => sort entries and
                      * exit.
                      */
-                    qsort (files, size, sizeof (void*), compare);
+                    qsort (files, size, sizeof (void*),
+                        (int (*) (const void*, const void*)) compare);
                     break;
 
                 }
@@ -1155,5 +1157,4 @@ dirent_set_errno(
 }
 #endif
 #endif /*DIRENT_H*/
-
 
