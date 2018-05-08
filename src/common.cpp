@@ -480,4 +480,200 @@ namespace Common
 		}
 
 	}
+
+	const Vector2 Vector2::zero(0, 0);
+	const Vector3 Vector3::zero(0,0,0);
+	const Quaternion Quaternion::iddentity(0, 0, 0, 1);
+	
+
+	/*-------------------------------------------------------------------------------\
+	|                             crossProduct			                             |
+	\-------------------------------------------------------------------------------*/
+	Vector3 crossProduct(const Vector3& vec, const Vector3& rkVector)
+	{
+		return Vector3(
+			vec.y * rkVector.z - vec.z * rkVector.y,
+			vec.z * rkVector.x - vec.x * rkVector.z,
+			vec.x * rkVector.y - vec.y * rkVector.x);
+	}
+	/*-------------------------------------------------------------------------------\
+	|                quatMulVec3									                 |
+	\-------------------------------------------------------------------------------*/
+	Vector3 Quaternion::quatMulVec3(Vector3 v)						//from Ogre Vector3 Quaternion::operator* (const Vector3& v) const
+	{
+		// nVidia SDK implementation
+		Vector3 uv, uuv;
+		Vector3 qvec(x, y, z);
+		uv = crossProduct(qvec, v);
+		uuv = crossProduct(qvec, uv);
+		uv.x = uv.x * (2.0 * w);
+		uv.y = uv.y * (2.0 * w);
+		uv.z = uv.z * (2.0 * w);
+		uuv.x = uuv.x * 2.0;
+		uuv.y = uuv.y * 2.0;
+		uuv.z = uuv.z * 2.0;
+
+		return Vector3(v.x + uv.x + uuv.x, v.y + uv.y + uuv.y, v.z + uv.z + uuv.z);
+	}
+
+	/*-------------------------------------------------------------------------------\
+	|                quatMulQuat									                 |
+	\-------------------------------------------------------------------------------*/
+	Quaternion quatMulQuat(const Quaternion &quat, const Quaternion &rkQ)		//from Ogre Quaternion Quaternion::operator* (const Quaternion& rkQ) const
+	{
+		// NOTE:  Multiplication is not generally commutative, so in most cases p*q != q*p.
+
+		return Quaternion
+		(
+			quat.w * rkQ.x + quat.x * rkQ.w + quat.y * rkQ.z - quat.z * rkQ.y,
+			quat.w * rkQ.y + quat.y * rkQ.w + quat.z * rkQ.x - quat.x * rkQ.z,
+			quat.w * rkQ.z + quat.z * rkQ.w + quat.x * rkQ.y - quat.y * rkQ.x,
+			quat.w * rkQ.w - quat.x * rkQ.x - quat.y * rkQ.y - quat.z * rkQ.z
+		);
+	}
+	/*-------------------------------------------------------------------------------\
+	|                fromAngleAxis									                 |
+	\-------------------------------------------------------------------------------*/
+	Quaternion fromAngleAxis(const double& rfAngle, const Vector3& rkAxis)			//from Ogre Quaternion::FromAngleAxis
+	{
+		// assert:  axis[] is unit length
+		//
+		// The quaternion representing the rotation is
+		//   q = cos(A/2)+sin(A/2)*(x*i+y*j+z*k)
+
+		double fHalfAngle(0.5*rfAngle);
+		double fSin = sin(fHalfAngle *  3.14159265359 /180.0);
+		return Quaternion(fSin*rkAxis.x, fSin*rkAxis.y, fSin*rkAxis.z, cos(fHalfAngle *  3.14159265359 / 180.0));			//X,y,z,w
+	}
+
+
+	/*-------------------------------------------------------------------------------\
+	|                giveAngleOrientationForThisOrientationTaitBryan                 |
+	\-------------------------------------------------------------------------------*
+	// to TaitBryan : EulerAngle XZY in Yup.
+	Vector3 giveAngleOrientationForThisOrientationTaitBryan(Quaternion orient)
+	{
+		Vector3 q(0, 0, 0);
+
+		Vector3 dir = orient.quatMulVec3(Vector3(1, 0, 0));
+
+		//1) calcul yaw
+		Vector2 vectproj(dir.x, -dir.z);		//projection of the result on (O,x,-z) plane
+		if (vectproj.Length() > 0.000001)			//if undefined => by defaut 0;
+		{
+			vectproj.Normalize();
+
+			q.x = acos(vectproj.x) * 180.0 / 3.14159265359;
+			if (vectproj.y < 0)
+				q.x = -q.x;
+		}
+
+		//2) calcul pitch
+		Quaternion rotationInv_Yrot = fromAngleAxis(-q.x, Vector3(0, 1, 0));
+
+		Vector3 dir_tmp = quatMulQuat(rotationInv_Yrot, orient).quatMulVec3(Vector3(1, 0, 0));		//we cancel yaw rotation, the point must be into (O,x,y) plane
+		q.y = acos(dir_tmp.x) * 180.0 / 3.14159265359;
+		if (dir_tmp.y < 0)
+			q.y = -q.y;
+
+
+		//3) calcul roll
+		Quaternion rotationInv_Zrot = fromAngleAxis(-q.y, Vector3(0, 0, 1));
+		dir_tmp = quatMulQuat(rotationInv_Zrot, quatMulQuat(rotationInv_Yrot, orient)).quatMulVec3(Vector3(0, 0, 1));		//we cancel the yaw and pitch rotations, the point Vector3::UNIT_Y, after rotation, must be into (O,x,z) plane.
+		q.z = acos(dir_tmp.z) * 180.0 / 3.14159265359;
+		if (dir_tmp.y > 0)		// the direct direction is from Oy to Oz
+			q.z = -q.z;
+
+		return q;
+	}
+
+
+	/*-------------------------------------------------------------------------------\
+	|                giveAngleOrientationForThisOrientationTaitBryan                 |
+	\-------------------------------------------------------------------------------*/
+	// to TaitBryan : EulerAngle XZY, but Zup 
+	//( Xfront, Yup ZRight => Xright Yfront Zup )
+	// X => Y
+	// Y => Z
+	// Z => X
+	Vector3 giveAngleOrientationForThisOrientationTaitBryan(Quaternion orient)
+	{
+		Vector3 q(0, 0, 0);
+
+		Vector3 dir = orient.quatMulVec3(Vector3(0, 1, 0));
+
+		//1) calcul yaw
+		Vector2 vectproj(dir.y, -dir.x);		//projection of the result on (O,y,-x) plane
+		if (vectproj.Length() > 0.000001)			//if undefined => by defaut 0;
+		{
+			vectproj.Normalize();
+
+			q.x = acos(vectproj.x) * 180.0 / 3.14159265359;
+			if (vectproj.y < 0)
+				q.x = -q.x;
+		}
+
+		//2) calcul pitch
+		Quaternion rotationInv_Yrot = fromAngleAxis(-q.x, Vector3(0, 0, 1));
+
+		Vector3 dir_tmp = quatMulQuat(rotationInv_Yrot, orient).quatMulVec3(Vector3(0, 1, 0));		//we cancel yaw rotation, the point must be into (O,y,z) plane
+		q.y = acos(dir_tmp.y) * 180.0 / 3.14159265359;
+		if (dir_tmp.z < 0)
+		q.y = -q.y;
+
+
+		//3) calcul roll
+		Quaternion rotationInv_Zrot = fromAngleAxis(-q.z, Vector3(1, 0, 0));
+		dir_tmp = quatMulQuat(rotationInv_Zrot, quatMulQuat(rotationInv_Yrot, orient)).quatMulVec3(Vector3(1, 0, 0));		//we cancel the yaw and pitch rotations, the point Vector3::UNIT_Z, after rotation, must be into (O,y,x) plane.
+		q.z = acos(dir_tmp.x) * 180.0 / 3.14159265359;
+		if (dir_tmp.z > 0)		// the direct direction is from Oy to Oz
+		q.z = -q.z;
+
+		return q;
+	}
+
+
+	/*-------------------------------------------------------------------------------\
+	|                keepTaitBryanGood								                 |
+	\-------------------------------------------------------------------------------*/
+	void keepTaitBryanAnglesGood(Vector3 previousAngles, Vector3 &currentAngles)
+	{
+		//here we will try to take care of 360 -> 0 degrees, short path etc. to have better interpolation between keyframes, by adapt the currenAngles.
+				
+		//first, deal with Yaw.
+		double yaw_prev = previousAngles.x + 180.0;			// base range : [-180.0, 180.0] => [0, 360]
+		double yaw = currentAngles.x + 180.0;
+
+		double nbLaps_prev = floor(yaw_prev / 360.0);
+		double nbLaps = floor(yaw / 360.0);
+		currentAngles.x += (nbLaps_prev - nbLaps) * 360.0;	//get the same number of Laps as previous
+
+		yaw_prev = yaw_prev - nbLaps_prev * 360.0;
+		yaw = yaw - nbLaps * 360.0;
+
+		double diff = yaw - yaw_prev;
+		if (diff - 180.0 > 0.00000001)						//get shortpath
+			currentAngles.x -= 360.0;
+		if (diff + 180.0 < -0.00000001)                         //if(diff < -180.0)
+			currentAngles.x += 360.0;
+
+
+		//same for Roll
+		double roll_prev = previousAngles.z + 180.0;			// base range : [-180.0, 180.0] => [0, 360]
+		double roll = currentAngles.z + 180.0;
+
+		nbLaps_prev = floor(roll_prev / 360.0);
+		nbLaps = floor(roll / 360.0);
+		currentAngles.z += (nbLaps_prev - nbLaps) * 360.0;	//get the same number of Laps as previous
+
+		roll_prev = roll_prev - nbLaps_prev * 360.0;
+		roll = roll - nbLaps * 360.0;
+
+		diff = roll - roll_prev;
+		if (diff - 180.0 > 0.00000001)						//get shortpath
+			currentAngles.z -= 360.0;
+		if (diff + 180.0 < -0.00000001)                         //if(diff < -180.0)
+			currentAngles.z += 360.0;
+	}
+	
 }

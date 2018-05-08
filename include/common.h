@@ -92,7 +92,39 @@ namespace Common
 	string toUpperCase(string str);
 
 	//math
+	struct Vector2
+	{
+		double x; double y;
+		Vector2(double x = 0, double y = 0) { this->x = x; this->y = y;}
+		double Length() { return sqrt(x *x + y *y); }
+		void Normalize() { double length = Length(); if (length != 0.0) { x /= length; y /= length; } }
+		static const Vector2 zero;
+	};
+	struct Vector3
+	{
+		double x; double y; double z;
+		Vector3(double x = 0, double y = 0, double z = 0) { this->x = x; this->y = y; this->z = z;}
+		double Length() { return sqrt(x *x + y *y + z * z); }
+		void Normalize() { double length = Length(); if (length != 0.0) { x /= length; y /= length; z /= length; } }
+		static const Vector3 zero;
+	};
+	struct Quaternion
+	{
+		double x;
+		double y;
+		double z;
+		double w;
+		Quaternion(double x = 0, double y = 0, double z = 0, double w = 1) { this->x = x; this->y = y; this->z = z; this->w = w;}
+		Vector3 quatMulVec3(Vector3 vect);
+		static const Quaternion iddentity;
+	};
+	Vector3 crossProduct(const Vector3& vec, const Vector3& rkVector);
+	Quaternion quatMulQuat(const Quaternion &quat, const Quaternion &rkQ);		//from Ogre Quaternion Quaternion::operator* (const Quaternion& rkQ) const
+	Quaternion fromAngleAxis(const double& rfAngle, const Vector3& rkAxis);			//from Ogre Quaternion::FromAngleAxis
 	void decomposition4x4(double* transformMatrix, double* resultPosOrientScaleMatrix); //posOrientScaleMatrix is 3x4, orient is a quaternion informations, TransformMatrix is 4x4
+	Vector3 giveAngleOrientationForThisOrientationTaitBryan(Quaternion orient);
+	void keepTaitBryanAnglesGood(Vector3 previousAngles, Vector3 &currentAngles);
+	
 }
 
 #endif

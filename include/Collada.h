@@ -101,7 +101,7 @@ public:
 	{
 		AT_None = 0,
 		AT_Position,
-		AT_Orientation_AxisAngle,
+		AT_Rotation,
 		AT_Scale,
 		AT_TextureIndex,
 	};
@@ -156,9 +156,9 @@ public:
 	
 
 
-	TiXmlElement* createNode(string name, TiXmlElement* parentNode = 0, float transX = 0, float transY = 0, float transZ = 0, float rotAxisX = 0, float rotAxisY = 1, float rotAxisZ = 0, float rotAngle = 0, string instanceGeometryName = "", string materialName = "", bool haveTexture = false);
+	TiXmlElement* createNode(string name, TiXmlElement* parentNode = 0, Common::Vector3 position = Common::Vector3::zero, Common::Vector3 rotationAngles = Common::Vector3::zero, string instanceGeometryName = "", string materialName = "", bool haveTexture = false);
 	void makeInstanceGeometryOnNode(TiXmlElement* node, string instanceGeometryName, string materialName = "", bool haveTexture = false);
-	void addTransformOnNode(TiXmlElement* node = 0, float transX = 0, float transY = 0, float transZ = 0, float rotAxisX = 0, float rotAxisY = 1, float rotAxisZ = 0, float rotAngle = 0);
+	void addTransformOnNode(TiXmlElement* node = 0, Common::Vector3 position = Common::Vector3::zero, Common::Vector3 rotationAngles = Common::Vector3::zero);
 
 	void save(string filename);
 
