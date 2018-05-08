@@ -19,6 +19,7 @@ using namespace std;
 #include <deque>
 #include <iostream>
 #include <ctime>
+#include "dirent.h"
 
 using namespace std;
 

@@ -14,11 +14,11 @@ int main(int argc, char** argv)
 	printf("*******************************************************************\n");
 	if (argc < 2)
 	{
-printf("This tool is for extract/repack some files of StarwarsRacer,\n\
- Usage: 'Pack.exe [options] file.bin ...'\n\
+		printf("This tool is for extract/repack some files of StarwarsRacer,\n\
+ Notice: on Extract, a listFiles.xml will be generated. it's to keep the same order for repack.\n\
+ Usage: 'Pack.exe [options] file.bin ...' to extract, 'Pack.exe [options] folder' or 'Pack.exe [options] --out filenameToCreate.bin listFiles1.xml listFiles2.xml ...' to repack\n\
  Files formats supported : bin for model ('model' must be inside the filename).\n\
- Notice: a listFiles.xml will be generated. it's to keep the same order for repack. You also use 'pack listFiles.xml' to add directly all file inside.\n\
- Options : '-NoWait', '-AlwaysWait', '-WaitOnError' (default), or '-WaitOnWarning' or '--out filenameToCreate'.\n\
+ Options : '-NoWait', '-AlwaysWait', '-WaitOnError' (default), or '-WaitOnWarning'.\n\
 *******************************************************************\n\
 Press Enter to continue.\n");
 		getchar();
@@ -73,10 +73,9 @@ Press Enter to continue.\n");
 		if (toLowerCase(filenameToCreate).find("model") != std::string::npos)				//it's a model
 		{
 			Swr_Model* model = new Swr_Model();
-			model->unsplitModelFile(filenameToCreate, arguments, true);
+			model->unsplitModelFile_ListFilesXml(filenameToCreate, arguments, true);
 			delete model;
 		}
-
 		printf("finished.\n");
 		waitOnEnd();
 		return 0;

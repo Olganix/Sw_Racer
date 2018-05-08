@@ -591,7 +591,9 @@ public:
 	size_t getNumberModelInFile(string filename, bool show_error);
 	std::vector<string> splitModelFile(string filename, bool show_error);
 	void unsplitModelFile(string folder, bool show_error);
-	void unsplitModelFile(string filenameOut, std::vector<string> listFilenameToPack, bool show_error);
+	void unsplitModelFile_ToCheck(string filenameOut, std::vector<string> listFilenameToPack, bool show_error);
+	void unsplitModelFile_ListFilesXml(string filenameOut, std::vector<string> listListFilesXml, bool show_error);
+	void unsplitModelFile(string filenameOut, std::vector<string> listFilename, bool show_error);
 
 	//debug version
 	void save_Xml(string filename, bool makeTextureList, bool show_error = true);

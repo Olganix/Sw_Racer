@@ -192,29 +192,36 @@ namespace Common
 		return false;
 	}
 
+
+
+
 	std::vector<string> getFilesInFolder(string folderpath)
 	{
 		std::vector<string> listFilename;
 
-		WIN32_FIND_DATAA FindFileData;
-		HANDLE hFind;
-		hFind = FindFirstFileA((folderpath + "\\*.*").c_str(), &FindFileData);
-		if (hFind != INVALID_HANDLE_VALUE)
-		{
-			while (FindNextFileA(hFind, &FindFileData) != 0)
-			{
-				const char *name = FindFileData.cFileName;
-				if (name[0] == '.')
-					continue;
+		struct dirent **namelist;
 
-				string str = ToString(name);
-				if(fileCheck(folderpath + "\\" + str))
-					listFilename.push_back(str);
-			};
-			FindClose(hFind);
+		int n;
+
+		n = scandir(folderpath.c_str(), &namelist, 0, (int(__cdecl *)(const void *, const void *))alphasort);
+
+		if (n < 0)
+		{
+			perror("scandir");
+		}else{
+
+			while (n--)
+			{
+				//printf("%s\n", namelist[n]->d_name);
+				if (namelist[n]->d_name[0] != '.')
+					listFilename.push_back(namelist[n]->d_name);
+				free(namelist[n]);
+			}
+			free(namelist);
 		}
 		return listFilename;
 	}
+
 
 	std::vector<std::string> split(const std::string &text, char sep)
 	{

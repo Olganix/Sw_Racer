@@ -358,8 +358,6 @@ std::vector<string> Swr_Model::splitModelFile(string filename, bool show_error)
 
 	return listFilename;
 }
-
-
 /*-------------------------------------------------------------------------------\
 |                             unsplitModelFile			                         |
 \-------------------------------------------------------------------------------*/
@@ -372,43 +370,34 @@ void Swr_Model::unsplitModelFile(string folder, bool show_error)
 	for (size_t i = 0; i < nbFilenames; i++)
 		listFilename.at(i) = folder +"\\"+ listFilename.at(i);
 
-	unsplitModelFile(folder + ".bin", listFilename, show_error);
+	unsplitModelFile_ToCheck(folder + ".bin", listFilename, show_error);
 }
 /*-------------------------------------------------------------------------------\
 |                             unsplitModelFile			                         |
 \-------------------------------------------------------------------------------*/
-void Swr_Model::unsplitModelFile(string filenameOut, std::vector<string> listFilenameToPack, bool show_error)
+void Swr_Model::unsplitModelFile_ToCheck(string filenameOut, std::vector<string> listFilenameToPack, bool show_error)
 {
 	//filter
 	string filename_orderedFilesXml = "";
 	std::vector<string> listFilenameToCheck = listFilenameToPack;
 	std::vector<string> listFilename;
-	
+
 	size_t nbFiles = listFilenameToCheck.size();
 	for (size_t i = 0; i < nbFiles; i++)
 	{
-		string aa = nameFromFilename(listFilenameToCheck.at(i));
-
 		if (nameFromFilename(listFilenameToCheck.at(i)) == "listFiles.xml")
 		{
 			filename_orderedFilesXml = listFilenameToCheck.at(i);				//there is a special file witch could give the order of files (when emb have filename, so Windows order is'nt good enougth)
-		}
-		else if (extensionFromFilename(listFilenameToCheck.at(i)) == "bin") {
+		}else if (extensionFromFilename(listFilenameToCheck.at(i)) == "bin") {
 			listFilename.push_back(listFilenameToCheck.at(i));
 		}
 	}
-
-	
-
-	
-
 
 	//second read listFiles.xml if exist, to reorder for rebuild (to keep order).
 	if (filename_orderedFilesXml != "")
 	{
 		string filename_orderedFilesXml_folder = folderFromFilename(filename_orderedFilesXml);
-		bool justUseFileFromList = (listFilename.size() == 0);
-		
+
 		TiXmlDocument doc(filename_orderedFilesXml);
 		if (doc.LoadFile())
 		{
@@ -429,11 +418,8 @@ void Swr_Model::unsplitModelFile(string filenameOut, std::vector<string> listFil
 					listnames.push_back(filename_orderedFilesXml_folder + str);
 				}
 
-				if (justUseFileFromList)
+				if (listnames.size())
 				{
-					listFilename = listnames;
-
-				}else if (listnames.size()){
 
 					vector<string> newListFiles;
 
@@ -456,7 +442,7 @@ void Swr_Model::unsplitModelFile(string filenameOut, std::vector<string> listFil
 						}
 					}
 
-					for (size_t i = 0; i<nbFiles_old; i++)							//new files in folder, witch is not referenced in the file, are add at the end.
+					for (size_t i = 0; i < nbFiles_old; i++)							//new files in folder, witch is not referenced in the file, are add at the end.
 						newListFiles.push_back(listFilename.at(i));
 
 					listFilename = newListFiles;
@@ -465,7 +451,58 @@ void Swr_Model::unsplitModelFile(string filenameOut, std::vector<string> listFil
 		}
 	}
 
+	unsplitModelFile(filenameOut, listFilename, show_error);
+}
+/*-------------------------------------------------------------------------------\
+|                             unsplitModelFile			                         |
+\-------------------------------------------------------------------------------*/
+void Swr_Model::unsplitModelFile_ListFilesXml(string filenameOut, std::vector<string> listListFilesXml, bool show_error)
+{
+	//filter
+	std::vector<string> listFilename;
 
+	size_t nbFiles = listListFilesXml.size();
+	for (size_t i = 0; i < nbFiles; i++)
+	{
+		if (extensionFromFilename(listListFilesXml.at(i)) == "xml")
+		{
+			string folder = folderFromFilename(listListFilesXml.at(i));
+
+
+			TiXmlDocument doc(listListFilesXml.at(i));
+			if (doc.LoadFile())
+			{
+				TiXmlHandle hDoc(&doc);
+				TiXmlHandle hRoot(0);
+
+				TiXmlElement* rootNode = hDoc.FirstChildElement("ListFiles").Element();
+				if (rootNode)
+				{
+					std::vector<string> listnames;
+
+					string str = "";
+					for (TiXmlElement* xmlNode = rootNode->FirstChildElement("File"); xmlNode; xmlNode = xmlNode->NextSiblingElement("File"))
+					{
+						if (xmlNode->QueryStringAttribute("name", &str) != TIXML_SUCCESS)
+							continue;
+
+						listFilename.push_back(folder + str);
+					}
+				}
+			}
+		}else {
+			printf("error : can open file %s. skipped\n", listListFilesXml.at(i).c_str());
+			notifyError();
+		}
+	}
+
+	unsplitModelFile(filenameOut, listFilename, show_error);
+}
+/*-------------------------------------------------------------------------------\
+|                             unsplitModelFile			                         |
+\-------------------------------------------------------------------------------*/
+void Swr_Model::unsplitModelFile(string filenameOut, std::vector<string> listFilename, bool show_error)
+{
 	if (listFilename.size() == 0)
 	{
 		printf("error: no file founded.\n");
@@ -486,7 +523,7 @@ void Swr_Model::unsplitModelFile(string filenameOut, std::vector<string> listFil
 
 	size_t size_AllSectiont1 = 0;
 
-	nbFiles = listFilename.size();
+	size_t nbFiles = listFilename.size();
 	for (size_t i = 0; i < nbFiles; i++)
 	{
 		printf("Pack file %s\n", listFilename.at(i).c_str());
@@ -601,7 +638,6 @@ void Swr_Model::unsplitModelFile(string filenameOut, std::vector<string> listFil
 	bool ret = WriteFileBool(filenameOut, buf, size);
 	delete[] buf;
 }
-
 
 
 
