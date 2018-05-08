@@ -290,7 +290,7 @@ std::vector<string> Swr_Model::splitModelFile(string filename, bool show_error)
 		string folderPath = filenameNoExtension(filename);
 		string extention = extensionFromFilename(filename);
 		
-		mkdir(folderPath.c_str());															//new folder for extracted datas
+		do_mkdir(folderPath.c_str(), 0777);															//new folder for extracted datas
 
 		TiXmlDocument *doc = new TiXmlDocument();											//Xml for list, and keep order on rabuild
 		TiXmlDeclaration* decl = new TiXmlDeclaration("1.0", "UTF-8", "");
@@ -342,7 +342,7 @@ std::vector<string> Swr_Model::splitModelFile(string filename, bool show_error)
 				memcpy(buf_tmp + 4 * sizeof(uint32_t) + sizeSection1, buf + hdr->offset_Section2, sizeSection2);
 
 
-				listFilename.push_back(folderPath +"\\"+ newFilename);
+				listFilename.push_back(folderPath +"/"+ newFilename);
 				bool ret = WriteFileBool(listFilename.back(), buf_tmp, filesize);
 				delete[] buf_tmp;
 			}
@@ -350,7 +350,7 @@ std::vector<string> Swr_Model::splitModelFile(string filename, bool show_error)
 			
 		}
 
-		doc->SaveFile(folderPath+"\\listFiles.xml");
+		doc->SaveFile(folderPath+"/listFiles.xml");
 		delete doc;
 	}
 
@@ -368,7 +368,7 @@ void Swr_Model::unsplitModelFile(string folder, bool show_error)
 
 	size_t nbFilenames = listFilename.size();
 	for (size_t i = 0; i < nbFilenames; i++)
-		listFilename.at(i) = folder +"\\"+ listFilename.at(i);
+		listFilename.at(i) = folder +"/"+ listFilename.at(i);
 
 	unsplitModelFile_ToCheck(folder + ".bin", listFilename, show_error);
 }

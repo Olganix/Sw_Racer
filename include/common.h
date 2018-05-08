@@ -19,7 +19,12 @@ using namespace std;
 #include <deque>
 #include <iostream>
 #include <ctime>
-#include "dirent.h"
+#ifdef _MSC_VER
+#include "vs/dirent.h"
+#else
+#include <dirent.h>
+#endif
+
 
 using namespace std;
 
