@@ -4,9 +4,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
 find_package(TinyXML REQUIRED)
 
-include_directories(SYSTEM depends/half)
-include_directories(SYSTEM depends/dirent)
-include_directories(SYSTEM include)
+include_directories(depends/half)
+include_directories(include)
 
 include_directories(SYSTEM ${TinyXML_INCLUDE_DIRS})
 link_libraries(${TinyXML_LIBRARIES})

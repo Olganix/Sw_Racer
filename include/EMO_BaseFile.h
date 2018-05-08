@@ -28,6 +28,7 @@
 	#include <direct.h>
 	#define do_mkdir(a, b) _mkdir(a)
 #else
+	#include <sys/stat.h>
 	#define do_mkdir(a, b) mkdir(a, b)
 #endif
 
