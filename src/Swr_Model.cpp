@@ -815,21 +815,10 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 		
 
-		if (memcmp(hdr_section2->signature, SWR_MODEL_SIGNATURE_MODEL, 4) == 0)
-			node_model->SetAttribute("Type", "Model");
-		else if (memcmp(hdr_section2->signature, SWR_MODEL_SIGNATURE_TRACK, 4) == 0)
-			node_model->SetAttribute("Type", "Track");
-		else if (memcmp(hdr_section2->signature, SWR_MODEL_SIGNATURE_POD, 4) == 0)
-			node_model->SetAttribute("Type", "Pod");
-		else if (memcmp(hdr_section2->signature, SWR_MODEL_SIGNATURE_PART, 4) == 0)
-			node_model->SetAttribute("Type", "Part");
-		else if (memcmp(hdr_section2->signature, SWR_MODEL_SIGNATURE_SCENE, 4) == 0)
-			node_model->SetAttribute("Type", "Scene");
-		else if (memcmp(hdr_section2->signature, SWR_MODEL_SIGNATURE_MAlt, 4) == 0)
-			node_model->SetAttribute("Type", "Malt");
-		else if (memcmp(hdr_section2->signature, SWR_MODEL_SIGNATURE_Pupp, 4) == 0)
-			node_model->SetAttribute("Type", "Pupp");
-		
+		char signatureForStr[5];
+		memcpy(signatureForStr, hdr_section2->signature, 4);
+		signatureForStr[4] = '\0';
+		node_model->SetAttribute("Type", signatureForStr);
 
 
 		std::vector<size_t> listPointer_AltN;
