@@ -74,6 +74,51 @@ public:
 
 
 
+
+/*-------------------------------------------------------------------------------\
+|                             ColladaAnimation		                             |
+\-------------------------------------------------------------------------------*/
+class ColladaKeyframe
+{
+public:
+	float time;
+	float x;
+	float y;
+	float z;
+	float w;
+
+	ColladaKeyframe(float time = 0, float x = 0, float y = 0, float z = 0, float w = 0);
+};
+
+
+/*-------------------------------------------------------------------------------\
+|                             ColladaAnimation		                             |
+\-------------------------------------------------------------------------------*/
+class ColladaAnimation
+{
+public:
+	enum AnimationType
+	{
+		AT_None = 0,
+		AT_Position,
+		AT_Orientation_AxisAngle,
+		AT_Scale,
+		AT_TextureIndex,
+	};
+
+	string name;										//Notice: on the createAnimationsTags(), all ColladaAnimation with the same name will have the maxduration of all.
+	string targetId;
+	AnimationType type;
+	float duration;
+
+	std::vector<ColladaKeyframe> listKeyFrames;
+
+	ColladaAnimation(string targetId, AnimationType type = AT_None, float duration = 0);
+};
+
+
+
+
 /*-------------------------------------------------------------------------------\
 |                             Collada											 |
 \-------------------------------------------------------------------------------*/
@@ -106,7 +151,11 @@ public:
 	void addGeometry(string name, std::vector<EMDVertex> &vertices, std::vector<EMDTriangles> &triangles, string materialName);
 	void addTextureMaterial(string name, string filename);
 	void addColorMaterial(string name, string color);
+	void addAnimation(ColladaAnimation &animation);
+	void addAnimationExtraInformations(float framePerSecond, float startTime, float endTime);
 	
+
+
 	TiXmlElement* createNode(string name, TiXmlElement* parentNode = 0, float transX = 0, float transY = 0, float transZ = 0, float rotAxisX = 0, float rotAxisY = 1, float rotAxisZ = 0, float rotAngle = 0, string instanceGeometryName = "", string materialName = "", bool haveTexture = false);
 	void makeInstanceGeometryOnNode(TiXmlElement* node, string instanceGeometryName, string materialName = "", bool haveTexture = false);
 	void addTransformOnNode(TiXmlElement* node = 0, float transX = 0, float transY = 0, float transZ = 0, float rotAxisX = 0, float rotAxisY = 1, float rotAxisZ = 0, float rotAngle = 0);

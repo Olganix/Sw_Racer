@@ -140,6 +140,35 @@ void EMDVertex::getColorFromRGBA_str(string values)
 
 
 
+/*-------------------------------------------------------------------------------\
+|                             ColladaKeyframe									 |
+\-------------------------------------------------------------------------------*/
+ColladaKeyframe::ColladaKeyframe(float time, float x, float y, float z, float w)
+{
+	this->time = time;
+	this->x = x;
+	this->y = y;
+	this->z = z;
+	this->w = w;
+}
+/*-------------------------------------------------------------------------------\
+|                             ColladaAnimation									 |
+\-------------------------------------------------------------------------------*/
+ColladaAnimation::ColladaAnimation(string targetId, AnimationType type, float duration)
+{
+	this->targetId = targetId;
+	this->type = type;
+	this->duration = duration;
+}
+
+
+
+
+
+
+
+
+
 
 
 
@@ -148,7 +177,7 @@ void EMDVertex::getColorFromRGBA_str(string values)
 \-------------------------------------------------------------------------------*/
 Collada::Collada()
 {
-	node_library_cameras = node_library_lights = node_library_images = node_library_effects = node_library_materials = 0;
+	node_library_cameras = node_library_lights = node_library_images = node_library_effects = node_library_materials = node_library_animations = 0;
 	
 	
 	doc = new TiXmlDocument();
@@ -887,60 +916,434 @@ void Collada::save(string filename)
 
 
 
-
-
-/*
+/*-------------------------------------------------------------------------------\
+|                             addAnimation										 |
+\-------------------------------------------------------------------------------*/
+void Collada::addAnimation(ColladaAnimation &animation)
 {
+	checkRootFor("library_animations");
+
+	
+	string targetAnimType = "";
+	size_t nbComponents = 0;
+	switch (animation.type)
+	{
+	case ColladaAnimation::AT_Position: targetAnimType = "translate"; nbComponents = 3;  break;
+	case ColladaAnimation::AT_Orientation_AxisAngle: targetAnimType = "rotate";  nbComponents = 4; break;
+	case ColladaAnimation::AT_Scale: targetAnimType = "scale";  nbComponents = 3; break;
+	case ColladaAnimation::AT_TextureIndex: targetAnimType = "init_from";  nbComponents = 1; break;
+
+	}
+	if (targetAnimType.length() == 0)
+		return;
+
+	string animName = animation.targetId + "_anim_" + targetAnimType;
+	size_t nbKeyFrames = animation.listKeyFrames.size();
+
+
+	TiXmlElement* node_anim = new TiXmlElement("animation");
+	node_library_animations->LinkEndChild(node_anim);
+	node_anim->SetAttribute("id", animName);
+	node_anim->SetAttribute("name", animName);
+
+
 	/////////////////////////////////////////////////////
 
 
-	TiXmlElement* node_library_animations = new TiXmlElement("library_animations");
-	root->LinkEndChild(node_library_animations);
+	node_anim = new TiXmlElement("animation");
+	node_library_animations->LinkEndChild(node_anim);
 
 
+
+
+
+	/////////////////////////////////////////////////////
+
+	TiXmlElement* node_source = new TiXmlElement("source");
+	node_anim->LinkEndChild(node_source);
+	node_source->SetAttribute("id", animName + "_times");
+
+	TiXmlElement* node_floats = new TiXmlElement("float_array");
+	node_source->LinkEndChild(node_floats);
+	node_floats->SetAttribute("id", animName + "_times_floats");
+	node_floats->SetAttribute("count", nbKeyFrames);
+	string str = "";
+	for (size_t i = 0; i < nbKeyFrames; i++)
+		str += ((i == 0) ? "" : " ") + EMO_BaseFile::FloatToString(animation.listKeyFrames.at(i).time);
+	node_floats->LinkEndChild(new TiXmlText(str));
+
+
+	TiXmlElement* node_technique_common = new TiXmlElement("technique_common");
+	node_source->LinkEndChild(node_technique_common);
+
+	TiXmlElement* node_accessor = new TiXmlElement("accessor");
+	node_technique_common->LinkEndChild(node_accessor);
+	node_accessor->SetAttribute("count", nbKeyFrames);
+	node_accessor->SetAttribute("source", "#" + animName + "_times_floats");
+	node_accessor->SetAttribute("stride", "1");
+
+	TiXmlElement* node_param = new TiXmlElement("param");
+	node_accessor->LinkEndChild(node_param);
+	node_param->SetAttribute("name", "TIME");
+	node_param->SetAttribute("type", "float");
+
+
+	/////////////////////////////////////////////////////
+
+
+
+	
+
+	node_source = new TiXmlElement("source");
+	node_anim->LinkEndChild(node_source);
+	node_source->SetAttribute("id", animName + "_values");
+
+
+
+	switch (animation.type)
+	{
+	case ColladaAnimation::AT_Position:
+	{	
+		TiXmlElement* node_floats = new TiXmlElement("float_array");
+		node_source->LinkEndChild(node_floats);
+		node_floats->SetAttribute("id", animName + "_values_floats");
+		node_floats->SetAttribute("count", nbKeyFrames * 3);
+		str = "";
+		for (size_t i = 0; i < nbKeyFrames; i++)
+		{
+			ColladaKeyframe &kf = animation.listKeyFrames.at(i);
+
+			str += ((i == 0) ? "" : " ") + EMO_BaseFile::FloatToString(kf.x);
+			str += " " + EMO_BaseFile::FloatToString(kf.y);
+			str += " " + EMO_BaseFile::FloatToString(kf.z);
+		}
+		node_floats->LinkEndChild(new TiXmlText(str));
+
+
+		TiXmlElement* node_technique_common = new TiXmlElement("technique_common");
+		node_source->LinkEndChild(node_technique_common);
+
+		TiXmlElement* node_accessor = new TiXmlElement("accessor");
+		node_technique_common->LinkEndChild(node_accessor);
+		node_accessor->SetAttribute("count", nbKeyFrames);
+		node_accessor->SetAttribute("source", "#" + animName + "_values_floats");
+		node_accessor->SetAttribute("stride", "3");
+
+		TiXmlElement* node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "X");
+		node_param->SetAttribute("type", "float");
+
+		node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "Y");
+		node_param->SetAttribute("type", "float");
+
+		node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "Z");
+		node_param->SetAttribute("type", "float");
+	}
+	break;
+
+
+
+	case ColladaAnimation::AT_Orientation_AxisAngle:
+	{
+		TiXmlElement* node_floats = new TiXmlElement("float_array");
+		node_source->LinkEndChild(node_floats);
+		node_floats->SetAttribute("id", animName + "_values_floats");
+		node_floats->SetAttribute("count", nbKeyFrames * 4);
+		str = "";
+		for (size_t i = 0; i < nbKeyFrames; i++)
+		{
+			ColladaKeyframe &kf = animation.listKeyFrames.at(i);
+
+			str += ((i == 0) ? "" : " ") + EMO_BaseFile::FloatToString(kf.x);
+			str += " " + EMO_BaseFile::FloatToString(kf.y);
+			str += " " + EMO_BaseFile::FloatToString(kf.z);
+			str += " " + EMO_BaseFile::FloatToString(kf.w);
+		}
+		node_floats->LinkEndChild(new TiXmlText(str));
+
+
+		TiXmlElement* node_technique_common = new TiXmlElement("technique_common");
+		node_source->LinkEndChild(node_technique_common);
+
+		TiXmlElement* node_accessor = new TiXmlElement("accessor");
+		node_technique_common->LinkEndChild(node_accessor);
+		node_accessor->SetAttribute("count", nbKeyFrames);
+		node_accessor->SetAttribute("source", "#" + animName + "_values_floats");
+		node_accessor->SetAttribute("stride", "4");
+
+		TiXmlElement* node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "X");
+		node_param->SetAttribute("type", "float");
+
+		node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "Y");
+		node_param->SetAttribute("type", "float");
+
+		node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "Z");
+		node_param->SetAttribute("type", "float");
+
+		node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "ANGLE");
+		node_param->SetAttribute("type", "float");
+	}
+	break;
+
+	case ColladaAnimation::AT_Scale:
+	{
+		TiXmlElement* node_floats = new TiXmlElement("float_array");
+		node_source->LinkEndChild(node_floats);
+		node_floats->SetAttribute("id", animName + "_values_floats");
+		node_floats->SetAttribute("count", nbKeyFrames * 3);
+		str = "";
+		for (size_t i = 0; i < nbKeyFrames; i++)
+		{
+			ColladaKeyframe &kf = animation.listKeyFrames.at(i);
+
+			str += ((i == 0) ? "" : " ") + EMO_BaseFile::FloatToString(kf.x);
+			str += " " + EMO_BaseFile::FloatToString(kf.y);
+			str += " " + EMO_BaseFile::FloatToString(kf.z);
+		}
+		node_floats->LinkEndChild(new TiXmlText(str));
+
+
+		TiXmlElement* node_technique_common = new TiXmlElement("technique_common");
+		node_source->LinkEndChild(node_technique_common);
+
+		TiXmlElement* node_accessor = new TiXmlElement("accessor");
+		node_technique_common->LinkEndChild(node_accessor);
+		node_accessor->SetAttribute("count", nbKeyFrames);
+		node_accessor->SetAttribute("source", "#" + animName + "_values_floats");
+		node_accessor->SetAttribute("stride", "3");
+
+		TiXmlElement* node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "X");
+		node_param->SetAttribute("type", "float");
+
+		node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "Y");
+		node_param->SetAttribute("type", "float");
+
+		node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "Z");
+		node_param->SetAttribute("type", "float");
+	}
+	break;
+
+
+
+
+
+
+	case ColladaAnimation::AT_TextureIndex:
+	{
+		TiXmlElement* node_Name_array = new TiXmlElement("Name_array");
+		node_source->LinkEndChild(node_Name_array);
+		node_Name_array->SetAttribute("id", animName + "_values_array");
+		node_Name_array->SetAttribute("count", nbKeyFrames * 3);
+		str = "";
+		for (size_t i = 0; i < nbKeyFrames; i++)
+		{
+			ColladaKeyframe &kf = animation.listKeyFrames.at(i);
+
+			str += ((i == 0) ? "" : " ") + ("texture_" + ((((size_t)kf.x) != 0xFFFFFF) ?  std::to_string((size_t)kf.x) : "empty") +".png");
+		}
+		node_floats->LinkEndChild(new TiXmlText(str));
+
+
+		TiXmlElement* node_technique_common = new TiXmlElement("technique_common");
+		node_source->LinkEndChild(node_technique_common);
+
+		TiXmlElement* node_accessor = new TiXmlElement("accessor");
+		node_technique_common->LinkEndChild(node_accessor);
+		node_accessor->SetAttribute("count", nbKeyFrames);
+		node_accessor->SetAttribute("source", "#" + animName + "_values_array");
+		node_accessor->SetAttribute("stride", "1");
+
+		TiXmlElement* node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("type", "name");
+	}
+	break;
+
+	}
+
+	
+
+	/////////////////////////////////////////////////////
+
+
+	node_source = new TiXmlElement("source");
+	node_anim->LinkEndChild(node_source);
+	node_source->SetAttribute("id", animName + "_interpolation");
+
+	TiXmlElement* node_Name_array = new TiXmlElement("Name_array");
+	node_source->LinkEndChild(node_Name_array);
+	node_Name_array->SetAttribute("id", animName + "_interpolation_array");
+	node_Name_array->SetAttribute("count", nbKeyFrames * nbComponents);
+	str = "";
+	for (size_t i = 0; i < nbKeyFrames * nbComponents; i++)
+		str += ((i == 0) ? "" : " ") + string("LINEAR");
+	node_Name_array->LinkEndChild(new TiXmlText(str));
+
+
+	node_technique_common = new TiXmlElement("technique_common");
+	node_source->LinkEndChild(node_technique_common);
+
+	node_accessor = new TiXmlElement("accessor");
+	node_technique_common->LinkEndChild(node_accessor);
+	node_accessor->SetAttribute("count", nbKeyFrames);
+	node_accessor->SetAttribute("source", "#" + animName + "_interpolation_array");
+	node_accessor->SetAttribute("stride", nbComponents);
+
+	node_param = new TiXmlElement("param");
+	node_accessor->LinkEndChild(node_param);
+	node_param->SetAttribute("type", "name");
+
+	/////////////////////////////////////////////////////
+
+
+
+	TiXmlElement* node_sampler = new TiXmlElement("sampler");
+	node_anim->LinkEndChild(node_sampler);
+	node_sampler->SetAttribute("id", animName + "_sampler");
+
+	TiXmlElement* node_input = new TiXmlElement("input");
+	node_sampler->LinkEndChild(node_input);
+	node_input->SetAttribute("semantic", "INPUT");
+	node_input->SetAttribute("source", "#"+ animName + "_times");
+
+	node_input = new TiXmlElement("input");
+	node_sampler->LinkEndChild(node_input);
+	node_input->SetAttribute("semantic", "OUTPUT");
+	node_input->SetAttribute("source", "#" + animName + "_values");
+
+	node_input = new TiXmlElement("input");
+	node_sampler->LinkEndChild(node_input);
+	node_input->SetAttribute("semantic", "INTERPOLATION");
+	node_input->SetAttribute("source", "#" + animName + "_interpolation");
+	
+
+	/////////////////////////////////////////////////////
+
+	
+
+	TiXmlElement* node_channel = new TiXmlElement("channel");
+	node_anim->LinkEndChild(node_channel);
+	node_channel->SetAttribute("source", animName + "_sampler");
+	node_channel->SetAttribute("target", animation.targetId + "/"+ targetAnimType);
+
+
+
+	/*
 	<animation id="Box001-anim" name="Box001"></animation>
 	<animation>
-	<source id="Box001-rotateX.ANGLE-input">
-	<float_array id="Box001-rotateX.ANGLE-input-array" count="2">0.033333 11.966667</float_array>
-	<technique_common>
-	<accessor source="#Box001-rotateX.ANGLE-input-array" count="2" stride="1">
-	<param type="float"></param>
-	</accessor>
-	</technique_common>
-	</source>
-	<source id="Box001-rotateX.ANGLE-output">
-	<float_array id="Box001-rotateX.ANGLE-output-array" count="2">0.000000 0.000000</float_array>
-	<technique_common>
-	<accessor source="#Box001-rotateX.ANGLE-output-array" count="2" stride="1">
-	<param type="float"></param>
-	</accessor>
-	</technique_common>
-	</source>
-	<source id="Box001-rotateX.ANGLE-interpolation">
-	<Name_array id="Box001-rotateX.ANGLE-interpolation-array" count="2">LINEAR LINEAR</Name_array>
-	<technique_common>
-	<accessor source="#Box001-rotateX.ANGLE-interpolation-array" count="2" stride="1">
-	<param type="name"></param>
-	</accessor>
-	</technique_common>
-	</source>
-	<sampler id="Box001-rotateX.ANGLE">
-	<input semantic="INPUT" source="#Box001-rotateX.ANGLE-input"></input>
-	<input semantic="OUTPUT" source="#Box001-rotateX.ANGLE-output"></input>
-	<input semantic="INTERPOLATION" source="#Box001-rotateX.ANGLE-interpolation"></input>
-	</sampler>
-	<channel source="#Box001-rotateX.ANGLE" target="Box001/rotateX.ANGLE"></channel>
+		<source id="Box001-rotateX.ANGLE-input">
+			<float_array id="Box001-rotateX.ANGLE-input-array" count="2">0.033333 11.966667</float_array>
+			<technique_common>
+				<accessor source="#Box001-rotateX.ANGLE-input-array" count="2" stride="1">
+					<param type="float"></param>
+				</accessor>
+			</technique_common>
+		</source>
+		<source id="Box001-rotateX.ANGLE-output">
+			<float_array id="Box001-rotateX.ANGLE-output-array" count="2">0.000000 0.000000</float_array>
+			<technique_common>
+				<accessor source="#Box001-rotateX.ANGLE-output-array" count="2" stride="1">
+					<param type="float"></param>
+				</accessor>
+			</technique_common>
+		</source>
+		<source id="Box001-rotateX.ANGLE-interpolation">
+			<Name_array id="Box001-rotateX.ANGLE-interpolation-array" count="2">LINEAR LINEAR</Name_array>
+			<technique_common>
+				<accessor source="#Box001-rotateX.ANGLE-interpolation-array" count="2" stride="1">
+					<param type="name"></param>
+				</accessor>
+			</technique_common>
+		</source>
+		<sampler id="Box001-rotateX.ANGLE">
+			<input semantic="INPUT" source="#Box001-rotateX.ANGLE-input"></input>
+			<input semantic="OUTPUT" source="#Box001-rotateX.ANGLE-output"></input>
+			<input semantic="INTERPOLATION" source="#Box001-rotateX.ANGLE-interpolation"></input>
+		</sampler>
+		<channel source="#Box001-rotateX.ANGLE" target="Box001/rotateX.ANGLE"></channel>
 	</animation>
 
 	//another for Box001-rotateY.ANGLE and Z ....
 
 	<library_visual_scenes>
 	<visual_scene id="Array Test 001" name="Array Test 001">
-	<node name="Box001" id="Box001" sid="Box001"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box001-Pivot" name="Box001-Pivot"><translate>0.185947 0.000000 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box001-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box002" id="Box002" sid="Box002"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box002-Pivot" name="Box002-Pivot"><translate>0.185947 1.891823 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box002-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box003" id="Box003" sid="Box003"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box003-Pivot" name="Box003-Pivot"><translate>0.185946 3.783642 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box003-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box004" id="Box004" sid="Box004"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box004-Pivot" name="Box004-Pivot"><translate>0.185944 5.675461 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box004-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box005" id="Box005" sid="Box005"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box005-Pivot" name="Box005-Pivot"><translate>0.185942 7.567280 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box005-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box006" id="Box006" sid="Box006"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box006-Pivot" name="Box006-Pivot"><translate>0.185939 9.459099 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box006-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box007" id="Box007" sid="Box007"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box007-Pivot" name="Box007-Pivot"><translate>0.185935 11.350918 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box007-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box008" id="Box008" sid="Box008"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box008-Pivot" name="Box008-Pivot"><translate>0.185931 13.242737 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box008-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box009" id="Box009" sid="Box009"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box009-Pivot" name="Box009-Pivot"><translate>0.185927 15.134556 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box009-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box010" id="Box010" sid="Box010"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box010-Pivot" name="Box010-Pivot"><translate>0.185922 17.026375 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box010-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box011" id="Box011" sid="Box011"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box011-Pivot" name="Box011-Pivot"><translate>0.185916 18.918194 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box011-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box012" id="Box012" sid="Box012"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box012-Pivot" name="Box012-Pivot"><translate>0.185910 20.810013 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box012-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box013" id="Box013" sid="Box013"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box013-Pivot" name="Box013-Pivot"><translate>0.185903 22.701832 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box013-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box014" id="Box014" sid="Box014"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box014-Pivot" name="Box014-Pivot"><translate>0.185895 24.593651 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box014-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box015" id="Box015" sid="Box015"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box015-Pivot" name="Box015-Pivot"><translate>0.185887 26.485470 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box015-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box016" id="Box016" sid="Box016"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box016-Pivot" name="Box016-Pivot"><translate>0.185879 28.377289 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box016-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box017" id="Box017" sid="Box017"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box017-Pivot" name="Box017-Pivot"><translate>0.185870 30.269108 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box017-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box018" id="Box018" sid="Box018"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box018-Pivot" name="Box018-Pivot"><translate>0.185860 32.160927 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box018-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box019" id="Box019" sid="Box019"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box019-Pivot" name="Box019-Pivot"><translate>0.185850 34.052746 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box019-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box020" id="Box020" sid="Box020"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box020-Pivot" name="Box020-Pivot"><translate>0.185839 35.944565 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box020-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box021" id="Box021" sid="Box021"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box021-Pivot" name="Box021-Pivot"><translate>0.185827 37.836384 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box021-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box022" id="Box022" sid="Box022"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box022-Pivot" name="Box022-Pivot"><translate>0.185815 39.728203 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box022-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box023" id="Box023" sid="Box023"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box023-Pivot" name="Box023-Pivot"><translate>0.185803 41.620022 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box023-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box024" id="Box024" sid="Box024"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box024-Pivot" name="Box024-Pivot"><translate>0.185790 43.511841 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box024-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box025" id="Box025" sid="Box025"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box025-Pivot" name="Box025-Pivot"><translate>0.185776 45.403660 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box025-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box026" id="Box026" sid="Box026"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box026-Pivot" name="Box026-Pivot"><translate>0.185762 47.295479 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box026-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box027" id="Box027" sid="Box027"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box027-Pivot" name="Box027-Pivot"><translate>0.185747 49.187302 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box027-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box028" id="Box028" sid="Box028"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box028-Pivot" name="Box028-Pivot"><translate>0.185731 51.079117 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box028-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box029" id="Box029" sid="Box029"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box029-Pivot" name="Box029-Pivot"><translate>0.185715 52.970940 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box029-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box030" id="Box030" sid="Box030"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box030-Pivot" name="Box030-Pivot"><translate>0.185699 54.862755 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box030-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box031" id="Box031" sid="Box031"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box031-Pivot" name="Box031-Pivot"><translate>0.185682 56.754578 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box031-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box032" id="Box032" sid="Box032"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box032-Pivot" name="Box032-Pivot"><translate>0.185664 58.646393 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box032-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box033" id="Box033" sid="Box033"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box033-Pivot" name="Box033-Pivot"><translate>0.185646 60.538216 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box033-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box034" id="Box034" sid="Box034"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box034-Pivot" name="Box034-Pivot"><translate>0.185627 62.430031 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box034-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box035" id="Box035" sid="Box035"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box035-Pivot" name="Box035-Pivot"><translate>0.185607 64.321854 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box035-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box036" id="Box036" sid="Box036"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box036-Pivot" name="Box036-Pivot"><translate>0.185587 66.213669 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box036-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box037" id="Box037" sid="Box037"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box037-Pivot" name="Box037-Pivot"><translate>0.185567 68.105492 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box037-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box038" id="Box038" sid="Box038"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box038-Pivot" name="Box038-Pivot"><translate>0.185546 69.997307 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box038-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box039" id="Box039" sid="Box039"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box039-Pivot" name="Box039-Pivot"><translate>0.185524 71.889122 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box039-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box040" id="Box040" sid="Box040"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box040-Pivot" name="Box040-Pivot"><translate>0.185502 73.780952 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box040-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box041" id="Box041" sid="Box041"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box041-Pivot" name="Box041-Pivot"><translate>0.185479 75.672768 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box041-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box042" id="Box042" sid="Box042"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box042-Pivot" name="Box042-Pivot"><translate>0.185456 77.564583 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box042-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box043" id="Box043" sid="Box043"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box043-Pivot" name="Box043-Pivot"><translate>0.185432 79.456398 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box043-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box044" id="Box044" sid="Box044"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box044-Pivot" name="Box044-Pivot"><translate>0.185407 81.348228 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box044-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box045" id="Box045" sid="Box045"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box045-Pivot" name="Box045-Pivot"><translate>0.185382 83.240044 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box045-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box046" id="Box046" sid="Box046"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box046-Pivot" name="Box046-Pivot"><translate>0.185356 85.131859 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box046-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box047" id="Box047" sid="Box047"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box047-Pivot" name="Box047-Pivot"><translate>0.185330 87.023674 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box047-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box048" id="Box048" sid="Box048"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box048-Pivot" name="Box048-Pivot"><translate>0.185303 88.915504 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box048-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box049" id="Box049" sid="Box049"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box049-Pivot" name="Box049-Pivot"><translate>0.185276 90.807320 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box049-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box050" id="Box050" sid="Box050"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box050-Pivot" name="Box050-Pivot"><translate>0.185248 92.699135 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box050-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box051" id="Box051" sid="Box051"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box051-Pivot" name="Box051-Pivot"><translate>0.185219 94.590950 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box051-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box052" id="Box052" sid="Box052"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box052-Pivot" name="Box052-Pivot"><translate>0.185190 96.482780 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box052-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box053" id="Box053" sid="Box053"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box053-Pivot" name="Box053-Pivot"><translate>0.185160 98.374596 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box053-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box054" id="Box054" sid="Box054"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box054-Pivot" name="Box054-Pivot"><translate>0.185130 100.266403 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box054-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box055" id="Box055" sid="Box055"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box055-Pivot" name="Box055-Pivot"><translate>0.185099 102.158218 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box055-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box056" id="Box056" sid="Box056"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box056-Pivot" name="Box056-Pivot"><translate>0.185068 104.050034 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box056-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box057" id="Box057" sid="Box057"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box057-Pivot" name="Box057-Pivot"><translate>0.185036 105.941849 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box057-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box058" id="Box058" sid="Box058"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box058-Pivot" name="Box058-Pivot"><translate>0.185003 107.833664 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box058-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box059" id="Box059" sid="Box059"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box059-Pivot" name="Box059-Pivot"><translate>0.184970 109.725479 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box059-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box060" id="Box060" sid="Box060"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box060-Pivot" name="Box060-Pivot"><translate>0.184936 111.617294 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box060-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box061" id="Box061" sid="Box061"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box061-Pivot" name="Box061-Pivot"><translate>0.184902 113.509109 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box061-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box062" id="Box062" sid="Box062"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box062-Pivot" name="Box062-Pivot"><translate>0.184867 115.400925 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box062-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box063" id="Box063" sid="Box063"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box063-Pivot" name="Box063-Pivot"><translate>0.184832 117.292740 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box063-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra><node name="Box064" id="Box064" sid="Box064"><rotate sid="rotateZ">0 0 1 0.000003</rotate><rotate sid="rotateY">0 1 0 -0.000000</rotate><rotate sid="rotateX">1 0 0 0.000000</rotate><node id="Box064-Pivot" name="Box064-Pivot"><translate>0.184796 119.184555 0.000000</translate><rotate>0.000000 0.000000 0.000000 0.000000</rotate><instance_geometry url="#Box064-lib"/></node><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node></node>
-	<extra><technique profile="MAX3D"><frame_rate>30.000000</frame_rate></technique><technique profile="FCOLLADA"><start_time>0.000000</start_time><end_time>11.966667</end_time></technique></extra>
+		<node name="Box001" id="Box001" sid="Box001">
+			<rotate sid="rotateZ">0 0 1 0.000003</rotate>
+			<rotate sid="rotateY">0 1 0 -0.000000</rotate>
+			<rotate sid="rotateX">1 0 0 0.000000</rotate>
+			
+			<node id="Box001-Pivot" name="Box001-Pivot">
+				<translate>0.185947 0.000000 0.000000</translate>
+				<rotate>0.000000 0.000000 0.000000 0.000000</rotate>
+				<instance_geometry url="#Box001-lib"/>
+			</node>
+			<extra>
+				<technique profile="FCOLLADA">
+					<visibility>1.000000</visibility>
+				</technique>
+			</extra>	
+		</node>
+		<extra>
+			<technique profile="MAX3D">
+				<frame_rate>30.000000</frame_rate>
+			</technique>
+			<technique profile="FCOLLADA">
+				<start_time>0.000000</start_time>
+				<end_time>11.966667</end_time>
+			</technique>
+		</extra>
+
 	</visual_scene>
 	</library_visual_scenes>
-
+	*/
 }
-*/
 
+
+/*-------------------------------------------------------------------------------\
+|                             addAnimationExtraInformations						 |
+\-------------------------------------------------------------------------------*/
+void Collada::addAnimationExtraInformations(float framePerSecond, float startTime, float endTime)
+{
+	TiXmlElement* node_extra = new TiXmlElement("extra");
+	node_visual_scene->LinkEndChild(node_extra);
+	
+	TiXmlElement* node_technique = new TiXmlElement("technique");
+	node_extra->LinkEndChild(node_technique);
+	node_technique->SetAttribute("profile", "MAX3D");
+	
+	TiXmlElement* node_frame_rate = new TiXmlElement("frame_rate");
+	node_technique->LinkEndChild(node_frame_rate);
+	node_frame_rate->LinkEndChild(new TiXmlText( EMO_BaseFile::FloatToString(framePerSecond) ));
+
+
+	node_technique = new TiXmlElement("technique");
+	node_extra->LinkEndChild(node_technique);
+	node_technique->SetAttribute("profile", "FCOLLADA");
+
+	TiXmlElement* node_start_time = new TiXmlElement("start_time");
+	node_technique->LinkEndChild(node_start_time);
+	node_start_time->LinkEndChild(new TiXmlText(EMO_BaseFile::FloatToString(startTime)));
+
+	TiXmlElement* node_end_time = new TiXmlElement("end_time");
+	node_technique->LinkEndChild(node_end_time);
+	node_end_time->LinkEndChild(new TiXmlText(EMO_BaseFile::FloatToString(endTime)));
+}

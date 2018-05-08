@@ -203,7 +203,7 @@ namespace Common
 
 		int n;
 
-		n = scandir(folderpath.c_str(), &namelist, 0, alphasort);
+		n = scandir(folderpath.c_str(), &namelist, 0, (int(__cdecl *)(const void *, const void *))alphasort);
 
 		if (n < 0)
 		{

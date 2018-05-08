@@ -2281,6 +2281,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 		else
 			listToCleanBecauseOfDebug.push_back(node_listAnim);
 
+		float maxDuration = 0.0f;
 
 		size_t nbAnim = listPointer_Anim.size();
 		for (size_t inc_Anim = 0; inc_Anim < nbAnim; inc_Anim++)
@@ -2336,10 +2337,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 					listKeyframesTimes.push_back(val_float(values[j]));
 					offset += sizeof(float);
 
-					/*
-					if ((size_t)(listKeyframesTimes.back() * 60.0f) > ean_anim.frame_count)
-						ean_anim.frame_count = (size_t)(listKeyframesTimes.back() * 60.0f);
-					*/
+					if (listKeyframesTimes.back() > maxDuration)
+						maxDuration = listKeyframesTimes.back();
 				}
 			}
 
@@ -2371,6 +2370,9 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 					offset = hdr_anim->offset_values + hdr->offset_Section2;
 					uint32_t* listOffset = (uint32_t*)GetOffsetPtr(buf, offset, true);
 					
+					//todo get the list of Section4 to have the ref
+					//ColladaAnimation colladaAnim(, ColladaAnimation::AT_TextureIndex, hdr_anim->nbKeyFrames);
+
 					for (size_t j = 0; j < hdr_anim->nbKeyFrames; j++)
 					{
 						size_t startoffset_section5 = val32(listOffset[j]) + hdr->offset_Section2;
@@ -2458,6 +2460,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 				//nbComponents = 0;		//test Anima Todo remove
 
+				
+
 
 				TiXmlElement* node_listKeyframes = new TiXmlElement("ListKeyframes");
 				node_listKeyframes->SetAttribute("nbComponents", nbComponents);
@@ -2465,65 +2469,33 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 				if (nbComponents != 0)
 				{
-					/*
-					//find ean bone and create a ean Node to animate the bone.
-					size_t isfound = (size_t)-1;
+					ColladaAnimation colladaAnim("", ColladaAnimation::AT_None, hdr_anim->nbKeyFrames);
 
+
+					//find Node referenced
 					size_t nbAlt = listAltN_offset.size();
 					for (size_t j = 0; j < nbAlt; j++)
 					{
 						if (hdr_anim->offset_AltN + hdr->offset_Section2 == listAltN_offset.at(j))
 						{
-							isfound = esk->getBoneIndex(listAltN_BonesName.at(j));
-							node_listKeyframes->SetAttribute("bone", listAltN_BonesName.at(j));
+							colladaAnim.targetId = listAltN_BonesName.at(j);
 							break;
 						}
 					}
 
-					
-					EANAnimationNode* ean_animNode = 0;
-					if (isfound != (size_t)-1)
-					{
-						size_t nbNodes = ean_anim.nodes.size();
-						for (size_t j = 0; j < nbNodes; j++)
-						{
-							if (ean_anim.nodes.at(j).bone_index == isfound)
-							{
-								ean_animNode = &ean_anim.nodes.at(j);
-								break;
-							}
-						}
-						if (!ean_animNode)
-						{
-							ean_anim.nodes.push_back(EANAnimationNode());
-							ean_anim.nodes.back().bone_index = isfound;
-							ean_animNode = &ean_anim.nodes.at(nbNodes);
-						}
-					}
-					
-					
 					//Now it's about the type of animation: position/orientation/scale
-					EANKeyframedAnimation* eanKfAnim = 0;
-					if (ean_animNode)
+					if (colladaAnim.targetId.length()!=0)
 					{
 						if (nbComponents == 4)
 						{
-							ean_animNode->keyframed_animations.push_back(EANKeyframedAnimation());
-							eanKfAnim = &ean_animNode->keyframed_animations.at(ean_animNode->keyframed_animations.size() - 1);
-							eanKfAnim->flag = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION;
-
+							colladaAnim.type = ColladaAnimation::AT_Orientation_AxisAngle;
 						}else{
 							
 							//todo analyze to make the difference between position and scale.
 							if ((hdr_anim->flags & 0x0F) == 9)
-							{
-								ean_animNode->keyframed_animations.push_back(EANKeyframedAnimation());
-								eanKfAnim = &ean_animNode->keyframed_animations.at(ean_animNode->keyframed_animations.size() - 1);
-								eanKfAnim->flag = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_POSITION;
-							}
+								colladaAnim.type = ColladaAnimation::AT_Position;
 						}
 					}
-					*/
 
 
 					
@@ -2560,15 +2532,9 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 								offset += sizeof(float);
 							}
 
-							/*
-							if (eanKfAnim)
-							{
-								EANKeyframe eanKf((int)(listKeyframesTimes.at(j) * 60.0f), x, y, z);	//because ean time is NumFrame, and is done for 60fps
-								eanKfAnim->keyframes.push_back(eanKf);
-							}
-							*/
+							colladaAnim.listKeyFrames.push_back(ColladaKeyframe(listKeyframesTimes.at(j) , x, y, z));
 
-						}else{			//apparently it's quaternion, and the order is W XYZ, to be simple ...
+						}else{			//apparently
 
 							float axisX = val_float(values[inc++]);
 							float axisY = val_float(values[inc++]);
@@ -2576,15 +2542,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 							float angle = val_float(values[inc++]);
 							offset += 4 * sizeof(float);
 
-							/*
-							if (eanKfAnim)
-							{
-								FbxQuaternion quad_tmp(FbxVector4(axisX, axisY, axisZ), angle);
-
-								EANKeyframe eanKf((int)(listKeyframesTimes.at(j) * 60.0f), (float)quad_tmp[0], (float)quad_tmp[1], (float)quad_tmp[2], (float)quad_tmp[3]);	//because ean time is NumFrame, and is done for 60fps
-								eanKfAnim->keyframes.push_back(eanKf);
-							}
-							*/
+							colladaAnim.listKeyFrames.push_back(ColladaKeyframe(listKeyframesTimes.at(j) , axisX, axisY, axisZ, angle));
 
 							node_Kf->SetAttribute("x", FloatToString(axisX));
 							node_Kf->SetAttribute("y", FloatToString(axisY));
@@ -2592,6 +2550,10 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 							node_Kf->SetAttribute("angle", FloatToString(angle));
 						}
 					}
+
+
+					if (colladaAnim.targetId.length() != 0)
+						collada->addAnimation(colladaAnim);
 				}
 			}
 
@@ -2600,6 +2562,14 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 			hdr_anim->offset_times = val32(hdr_anim->offset_times);
 			hdr_anim->offset_values = val32(hdr_anim->offset_values);
 			hdr_anim->offset_AltN = val32(hdr_anim->offset_AltN);
+		}
+
+		
+
+		if (nbAnim != 0)
+		{
+			collada->addAnimationExtraInformations(60.0f, 0.0f, maxDuration);
+			collada_collision->addAnimationExtraInformations(60.0f, 0.0f, maxDuration);
 		}
 	}
 
