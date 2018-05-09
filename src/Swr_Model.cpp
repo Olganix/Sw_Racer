@@ -2119,7 +2119,13 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						}
 
 
-						rotationAngle = giveAngleOrientationForThisOrientationTaitBryan(Quaternion(quaternionX, quaternionY, quaternionZ, quaternionW));
+						rotationAngle = giveAngleOrientationForThisOrientationTaitBryan_XYZ(Quaternion(quaternionX, quaternionY, quaternionZ, quaternionW));
+
+
+						/*
+						rotationAngle = Vector3::zero;
+						matrixToEulerAnglesZYX(Vector3(resultTransformMatrix[0], resultTransformMatrix[4], resultTransformMatrix[8]), Vector3(resultTransformMatrix[1], resultTransformMatrix[5], resultTransformMatrix[9]), Vector3(resultTransformMatrix[2], resultTransformMatrix[6], resultTransformMatrix[10]), rotationAngle);
+						*/
 
 						//test to valide the rotation Angles
 						{
@@ -2219,6 +2225,10 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						if (maltNodeName == "model_1_1__76")
 							int aa = 42;
 
+						Vector3 m0 = Vector3(resultTransformMatrix[0], resultTransformMatrix[4], resultTransformMatrix[8]);
+						Vector3 m1 = Vector3(resultTransformMatrix[1], resultTransformMatrix[5], resultTransformMatrix[9]);
+						Vector3 m2 = Vector3(resultTransformMatrix[2], resultTransformMatrix[6], resultTransformMatrix[10]);
+
 						Common::decomposition4x4(&resultTransformMatrix[0], &skinning_matrix_b[0]);
 						double quaternionX = skinning_matrix_b[4];
 						double quaternionY = skinning_matrix_b[5];
@@ -2231,6 +2241,18 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 							Vector3 testFront = quad.quatMulVec3(Vector3(1, 0, 0));
 							Vector3 testUp = quad.quatMulVec3(Vector3(0, 1, 0));
 							Vector3 testLeft = quad.quatMulVec3(Vector3(0, 0, 1));
+
+							if ((!Vector3::equals(testFront, m0, 0.001)) ||
+								(!Vector3::equals(testUp, m1, 0.001)) ||
+								(!Vector3::equals(testLeft, m2, 0.001))
+								)
+							{
+								Vector3 diffFront = testFront - m0;
+								Vector3 diffUp = testUp - m1;
+								Vector3 diffLeft = testLeft - m2;
+
+								int aa = 42;										//never get, so perfect
+							}
 
 							int aa = 42;
 						}
@@ -2248,21 +2270,46 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						}
 						
 
-						rotationAngle = giveAngleOrientationForThisOrientationTaitBryan(Quaternion(quaternionX, quaternionY, quaternionZ, quaternionW));
+						rotationAngle = giveAngleOrientationForThisOrientationTaitBryan_XYZ(Quaternion(quaternionX, quaternionY, quaternionZ, quaternionW));
+
+						
+						/*
+						rotationAngle = Vector3::zero;
+						matrixToEulerAnglesZYX(m0, m1, m2, rotationAngle);
+						//matrixToEulerAnglesZYX(Vector3(resultTransformMatrix[0], resultTransformMatrix[1], resultTransformMatrix[2]), Vector3(resultTransformMatrix[5], resultTransformMatrix[6], resultTransformMatrix[7]), Vector3(resultTransformMatrix[9], resultTransformMatrix[10], resultTransformMatrix[11]), rotationAngle);
+						*/
 
 						//test to valide the rotation Angles
 						{
 							//Quaternion transformFromEulerAngleXZY = quatMulQuat(fromAngleAxis(rotationAngle.x, Vector3(0, 1, 0)), quatMulQuat(fromAngleAxis(rotationAngle.y, Vector3(0, 0, 1)), fromAngleAxis(rotationAngle.z, Vector3(-1, 0, 0))));
-							Quaternion transformFromEulerAngleYXZ = quatMulQuat(fromAngleAxis(rotationAngle.x, Vector3(0, 0, 1)), quatMulQuat(fromAngleAxis(rotationAngle.y, Vector3(1, 0, 0)), fromAngleAxis(rotationAngle.z, Vector3(0, -1, 0))));
+							//Quaternion transformFromEulerAngleYXZ = quatMulQuat(fromAngleAxis(rotationAngle.x, Vector3(0, 0, 1)), quatMulQuat(fromAngleAxis(rotationAngle.y, Vector3(1, 0, 0)), fromAngleAxis(rotationAngle.z, Vector3(0, -1, 0))));
+							//Quaternion transformFromEulerAngleXYZ = quatMulQuat(fromAngleAxis(rotationAngle.x, Vector3(0, 0, 1)), quatMulQuat(fromAngleAxis(rotationAngle.y, Vector3(0, 1, 0)), fromAngleAxis(rotationAngle.z, Vector3(-1, 0, 0))));
+							Quaternion transformFromEulerAngleXYZ = quatMulQuat(fromAngleAxis(rotationAngle.z, Vector3(-1, 0, 0)), quatMulQuat(fromAngleAxis(rotationAngle.y, Vector3(0, -1, 0)), fromAngleAxis(rotationAngle.x, Vector3(0, 0, -1))));
 
-							Vector3 testFront = transformFromEulerAngleYXZ.quatMulVec3(Vector3(1,0,0));
-							Vector3 testUp = transformFromEulerAngleYXZ.quatMulVec3(Vector3(0, 1, 0));
-							Vector3 testLeft = transformFromEulerAngleYXZ.quatMulVec3(Vector3(0, 0, 1));
+							Vector3 testFront = transformFromEulerAngleXYZ.quatMulVec3(Vector3(1,0,0));
+							Vector3 testUp = transformFromEulerAngleXYZ.quatMulVec3(Vector3(0, 1, 0));
+							Vector3 testLeft = transformFromEulerAngleXYZ.quatMulVec3(Vector3(0, 0, 1));
 
-							int aa = 42;
+							if( (!Vector3::equals(testFront, m0, 0.001)) ||
+								(!Vector3::equals(testUp, m1, 0.001)) ||
+								(!Vector3::equals(testLeft, m2, 0.001))
+							  )
+							{
+								Vector3 diffFront = testFront - m0;
+								Vector3 diffUp = testUp - m1;
+								Vector3 diffLeft = testLeft - m2;
+
+								int aa = 42;
+							}
 						}
 					}
 
+					/*
+					rotationAngle.x *= -1;
+					rotationAngle.y *= -1;
+					rotationAngle.z *= -1;
+					*/
+					
 					collada->addTransformOnNode(collada_node, Vector3(val_float(section->posX), val_float(section->posY), val_float(section->posZ)), rotationAngle);
 					collada_collision->addTransformOnNode(collada_node, Vector3(val_float(section->posX), val_float(section->posY), val_float(section->posZ)), rotationAngle);
 				}
@@ -2449,8 +2496,6 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 						node_Kf->SetAttribute("time", FloatToString(listKeyframesTimes.at(j)));
 
-						SWR_Anim_Values_case2* section = (SWR_Anim_Values_case2*)GetOffsetPtr(buf, offset, true);
-
 						SWR_MODEL_Section5* section5 = (SWR_MODEL_Section5*)GetOffsetPtr(buf, offset, true);
 						offset += sizeof(SWR_MODEL_Section5);
 						size_t textureIndex = val32(section5->textureMaskAndIndex) & 0x00FFFFFF;
@@ -2552,6 +2597,9 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 					//Now it's about the type of animation: position/orientation/scale
 					if (colladaAnim.targetId.length()!=0)
 					{
+						
+						node_Anim->SetAttribute("targetId", colladaAnim.targetId);
+						
 						if (nbComponents == 4)
 						{
 							colladaAnim.type = ColladaAnimation::AT_Rotation;
@@ -2560,6 +2608,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 							//todo analyze to make the difference between position and scale.
 							if ((hdr_anim->flags & 0x0F) == 9)
 								colladaAnim.type = ColladaAnimation::AT_Position;
+							else
+								int aa = 42;
 						}
 					}
 
@@ -2608,9 +2658,80 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 							float angle = val_float(values[inc++]);
 							offset += 4 * sizeof(float);
 
+							/*
 							Vector3 rotationAngle = giveAngleOrientationForThisOrientationTaitBryan(fromAngleAxis(angle, Vector3(axisX, axisY, axisZ)));
-
 							colladaAnim.listKeyFrames.push_back(ColladaKeyframe(listKeyframesTimes.at(j) , (float)rotationAngle.x, (float)rotationAngle.y, (float)rotationAngle.z));
+							*/
+
+							/*
+							//second test : keep AxisAngle as Quaternion ,and just after having all frames, try to interpolate Quaternion for each frame before convert into RotationAngle, to avoid interpolation in Rotation Angles.
+							Quaternion quad = fromAngleAxis(angle, Vector3(axisX, axisY, axisZ));
+							colladaAnim.listKeyFrames.push_back(ColladaKeyframe(listKeyframesTimes.at(j), (float)quad.x, (float)quad.y, (float)quad.z, (float)quad.w));
+							*/
+
+							
+							Quaternion quat = fromAngleAxis(angle, Vector3(axisX, axisY, axisZ));
+							Vector3 rotationAngle = giveAngleOrientationForThisOrientationTaitBryan_XYZ(quat);
+							
+							
+							//rotationAngle.x *= -1;
+							//rotationAngle.y *= -1;
+							//rotationAngle.z *= -1;
+							
+							//rotationAngle.x += 180;
+							//rotationAngle.y += 180;
+							//rotationAngle.z += 180;
+
+							
+							//test to valide the rotation Angles
+							{
+								//Quaternion transformFromEulerAngleXZY = quatMulQuat(fromAngleAxis(rotationAngle.x, Vector3(0, 1, 0)), quatMulQuat(fromAngleAxis(rotationAngle.y, Vector3(0, 0, 1)), fromAngleAxis(rotationAngle.z, Vector3(-1, 0, 0))));
+								//Quaternion transformFromEulerAngleYXZ = quatMulQuat(fromAngleAxis(rotationAngle.x, Vector3(0, 0, 1)), quatMulQuat(fromAngleAxis(rotationAngle.y, Vector3(1, 0, 0)), fromAngleAxis(rotationAngle.z, Vector3(0, -1, 0))));
+								//Quaternion transformFromEulerAngleXYZ = quatMulQuat(fromAngleAxis(rotationAngle.x, Vector3(0, 0, 1)), quatMulQuat(fromAngleAxis(rotationAngle.y, Vector3(0, 1, 0)), fromAngleAxis(rotationAngle.z, Vector3(-1, 0, 0))));
+								Quaternion transformFromEulerAngleXYZ = quatMulQuat(fromAngleAxis(rotationAngle.z, Vector3(-1, 0, 0)), quatMulQuat(fromAngleAxis(rotationAngle.y, Vector3(0, -1, 0)), fromAngleAxis(rotationAngle.x, Vector3(0, 0, -1))));
+
+								Vector3 testFront = transformFromEulerAngleXYZ.quatMulVec3(Vector3(1, 0, 0));
+								Vector3 testUp = transformFromEulerAngleXYZ.quatMulVec3(Vector3(0, 1, 0));
+								Vector3 testLeft = transformFromEulerAngleXYZ.quatMulVec3(Vector3(0, 0, 1));
+
+								Vector3 m0b, m1b, m2b;
+								quadToRotationMatrix(quat, m0b, m1b, m2b);
+
+								Vector3 m0 = quat.quatMulVec3(Vector3(1, 0, 0));
+								Vector3 m1 = quat.quatMulVec3(Vector3(0, 1, 0));
+								Vector3 m2 = quat.quatMulVec3(Vector3(0, 0, 1));
+
+								Vector3 q(0, 0, 0);
+								matrixToEulerAnglesZYX(m0, m1, m2, q);
+
+								transformFromEulerAngleXYZ = quatMulQuat(fromAngleAxis(q.z, Vector3(-1, 0, 0)), quatMulQuat(fromAngleAxis(q.y, Vector3(0, -1, 0)), fromAngleAxis(q.x, Vector3(0, 0, -1))));
+								Vector3 testFrontb = transformFromEulerAngleXYZ.quatMulVec3(Vector3(1, 0, 0));
+								Vector3 testUpb = transformFromEulerAngleXYZ.quatMulVec3(Vector3(0, 1, 0));
+								Vector3 testLeftb = transformFromEulerAngleXYZ.quatMulVec3(Vector3(0, 0, 1));
+
+								
+
+								//rotationAngle = Vector3(q.x * -1, q.y * -1, q.z * -1);
+								//rotationAngle = Vector3(q.x * -1, q.y, q.z * -1);
+
+								//if ((colladaAnim.targetId == "model_87_0__4") && (listKeyframesTimes.at(j) >= 2.33330011) && (listKeyframesTimes.at(j) <= 7.19999981))
+								//	int aa = 42;
+
+								if ((!Vector3::equals(testFrontb, m0, 0.001)) ||
+									(!Vector3::equals(testUpb, m1, 0.001)) ||
+									(!Vector3::equals(testLeftb, m2, 0.001))
+									)
+								{
+									Vector3 diffFront = testFrontb - m0;
+									Vector3 diffUp = testUpb - m1;
+									Vector3 diffLeft = testLeftb - m2;
+
+									int aa = 42;
+								}
+							}
+
+							colladaAnim.listKeyFrames.push_back(ColladaKeyframe(listKeyframesTimes.at(j), (float)rotationAngle.x, (float)rotationAngle.y, (float)rotationAngle.z));
+							
 
 							node_Kf->SetAttribute("x", FloatToString(axisX));
 							node_Kf->SetAttribute("y", FloatToString(axisY));
@@ -2621,7 +2742,29 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 
 					if (colladaAnim.targetId.length() != 0)
+					{
+						if ((false) && (nbComponents == 4))			//rebuild for each Frames, with quaternion interpolation. to avoid interpolation on RotationAngles witch have Gimbal Lock.
+						{
+							size_t nbFrames = (size_t)ceil(colladaAnim.duration * 60.0f);
+
+							std::vector<ColladaKeyframe> listKeyFrames;
+
+							for (size_t j = 0; j < nbFrames; j++)
+							{
+								double time = ((double)j) / 60.0;
+								ColladaKeyframe currentKf = colladaAnim.getInterpolateKeyFrame_Quaternion(time);
+								Quaternion currentQuad(currentKf.x, currentKf.y, currentKf.z, currentKf.w);
+
+								Vector3 rotationAngle = giveAngleOrientationForThisOrientationTaitBryan_XYZ(currentQuad);
+
+								listKeyFrames.push_back(ColladaKeyframe((float)time, (float)rotationAngle.x, (float)rotationAngle.y, (float)rotationAngle.z));
+							}
+							colladaAnim.listKeyFrames = listKeyFrames;
+						}
+
+
 						collada->addAnimation(colladaAnim);
+					}
 				}
 			}
 

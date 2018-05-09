@@ -531,6 +531,52 @@ namespace Common
 			quat.w * rkQ.w - quat.x * rkQ.x - quat.y * rkQ.y - quat.z * rkQ.z
 		);
 	}
+	//-----------------------------------------------------------------------
+	Quaternion Slerp(double factor, Quaternion rkP, Quaternion rkQ, bool shortestPath)	//from Ogre Quaternion
+	{	
+		rkP.normalise();					// Only unit quaternions are valid rotations. Normalize to avoid undefined behavior.
+		rkQ.normalise();
+		
+		double fCos = rkP.Dot(rkQ);			// Compute the cosine of the angle between the two vectors.
+		Quaternion rkT;
+
+		// Do we need to invert rotation?
+		if (fCos < 0.0f && shortestPath)	// If the dot product is negative, the quaternions  have opposite handed-ness and slerp won't take  the shorter path. Fix by reversing one quaternion.
+		{
+			fCos = -fCos;
+			rkT = -rkQ;
+		}else{
+			rkT = rkQ;
+		}
+
+		if (abs(fCos) < 1 - 0.00000001)
+		{
+			if (fCos > 1)	// Robustness: Stay within domain of acos()
+				fCos = 1;
+			if (fCos < -1)
+				fCos = -1;
+			
+			// Standard case (slerp)
+			double fSin = sqrt(1 - fCos * fCos);
+			double fAngle_rad = atan2(fSin, fCos);
+			double fInvSin = 1.0f / fSin;
+			double fCoeff0 = sin((1.0f - factor) * fAngle_rad) * fInvSin;
+			double fCoeff1 = sin(factor * fAngle_rad) * fInvSin;
+			return rkP * fCoeff0 + rkT * fCoeff1;
+
+		}else{
+			// There are two situations:
+			// 1. "rkP" and "rkQ" are very close (fCos ~= +1), so we can do a linear
+			//    interpolation safely.
+			// 2. "rkP" and "rkQ" are almost inverse of each other (fCos ~= -1), there
+			//    are an infinite number of possibilities interpolation. but we haven't
+			//    have method to fix this case, so just use linear interpolation here.
+			Quaternion t = rkP * (1.0f - factor) + rkT * factor;
+			// taking the complement requires renormalisation
+			t.normalise();
+			return t;
+		}
+	}
 	/*-------------------------------------------------------------------------------\
 	|                fromAngleAxis									                 |
 	\-------------------------------------------------------------------------------*/
@@ -638,6 +684,9 @@ namespace Common
 	\-------------------------------------------------------------------------------*/
 	void keepTaitBryanAnglesGood(Vector3 previousAngles, Vector3 &currentAngles)
 	{
+		//return;				//test to remove.
+		
+		
 		//here we will try to take care of 360 -> 0 degrees, short path etc. to have better interpolation between keyframes, by adapt the currenAngles.
 				
 		//first, deal with Yaw.
@@ -676,4 +725,140 @@ namespace Common
 			currentAngles.z += 360.0;
 	}
 	
+
+
+
+
+
+	/*-------------------------------------------------------------------------------\
+	|                giveAngleOrientationForThisOrientationTaitBryan_XYZ             |
+	\-------------------------------------------------------------------------------*/
+	// to TaitBryan : EulerAngle XZY, but Zup 
+	//(  Yup ZRight Xfront, => Zup Yright Xfront   )
+	// X => X
+	// Y => Z
+	// Z => Y
+	Vector3 giveAngleOrientationForThisOrientationTaitBryan_XYZ(Quaternion orient)				//same version, but with this order of rotation, the yaw is on the diqs display by pitch rotation.
+	{
+		//convert into a matrix3x3
+		Vector3 m0, m1, m2;
+		quadToRotationMatrix(orient, m0, m1, m2);
+
+		//convert matrix3x3 into EulerAngle
+		Vector3 q(0, 0, 0);
+		matrixToEulerAnglesZYX(m0, m1, m2, q);
+
+		return q;
+	}
+
+
+
+	/*-------------------------------------------------------------------------------\
+	|                quadToRotationMatrix											 |
+	\-------------------------------------------------------------------------------*/
+	void quadToRotationMatrix(Quaternion orient, Vector3 &m0, Vector3 &m1, Vector3 &m2)
+	{
+		//normalize quaternion as in https://www.andre-gaschler.com/rotationconverter/ , else we could have infinite + weird result on matrixToEulerAnglesZYX, because of float precision on quaternion.
+		double a = sqrt(orient.x * orient.x + orient.y * orient.y + orient.z * orient.z + orient.w * orient.w);
+		if (0 == a)
+		{
+			orient.x = orient.y = orient.z = 0;
+			orient.w = 1;
+		}else {
+			a = 1.0 / a;
+			orient.x *= a;
+			orient.y *= a;
+			orient.z *= a;
+			orient.w *= a;
+		}
+
+
+
+		double fTx = orient.x + orient.x;
+		double fTy = orient.y + orient.y;
+		double fTz = orient.z + orient.z;
+		double fTwx = fTx * orient.w;
+		double fTwy = fTy * orient.w;
+		double fTwz = fTz * orient.w;
+		double fTxx = fTx * orient.x;
+		double fTxy = fTy * orient.x;
+		double fTxz = fTz * orient.x;
+		double fTyy = fTy * orient.y;
+		double fTyz = fTz * orient.y;
+		double fTzz = fTz * orient.z;
+
+		m0.x = 1.0 - (fTyy + fTzz);
+		m0.y = fTxy - fTwz;
+		m0.z = fTxz + fTwy;
+		m1.x = fTxy + fTwz;
+		m1.y = 1.0 - (fTxx + fTzz);
+		m1.z = fTyz - fTwx;
+		m2.x = fTxz - fTwy;
+		m2.y = fTyz + fTwx;
+		m2.z = 1.0 - (fTxx + fTyy);
+	}
+
+	/*-------------------------------------------------------------------------------\
+	|                clamp															 |
+	\-------------------------------------------------------------------------------*/
+	void clampNear(double value, double min, double max, double eps)
+	{
+		if ((value < min) && (abs(value - min) < eps))
+			value = min;
+		if ((value > max) && (abs(value - max) < eps))
+			value = max;
+	}
+	/*-------------------------------------------------------------------------------\
+	|                clampNear														 |
+	\-------------------------------------------------------------------------------*/
+	void clampNear(Vector3 value, Vector3 min, Vector3 max, double eps)
+	{
+		clampNear(value.x);
+		clampNear(value.y);
+		clampNear(value.z);
+	}
+
+
+	/*-------------------------------------------------------------------------------\
+	|                matrixToEulerAnglesZYX											 |
+	\-------------------------------------------------------------------------------*/
+	bool matrixToEulerAnglesZYX(Vector3 m0, Vector3 m1, Vector3 m2, Vector3 &YPR_angles)
+	{
+		// rot =  cy*cz           cz*sx*sy-cx*sz  cx*cz*sy+sx*sz
+		//        cy*sz           cx*cz+sx*sy*sz -cz*sx+cx*sy*sz
+		//       -sy              cy*sx           cx*cy
+
+		clampNear(m0);		//few corrections, due to the float precision on quaternion.
+		clampNear(m1);
+		clampNear(m2);
+
+
+		YPR_angles.y = asin(-m2.x) * 180.0 / 3.14159265359;
+		if (YPR_angles.y < 90.0)
+		{
+			if (YPR_angles.y > -90.0)
+			{
+				YPR_angles.x = atan2(m1.x, m0.x) * 180.0 / 3.14159265359;
+				YPR_angles.z = atan2(m2.y, m2.z) * 180.0 / 3.14159265359;
+				return true;
+			}
+			else {
+				// WARNING.  Not a unique solution.
+				double fRmY = atan2(-m0.y, m0.z) * 180.0 / 3.14159265359;
+				YPR_angles.z = 0.0;  // any angle works
+				//YPR_angles.x = YPR_angles.z - fRmY;
+				YPR_angles.x = fRmY - YPR_angles.z;
+				return false;
+			}
+
+		}else {
+			// WARNING.  Not a unique solution.
+			double fRpY = atan2(-m0.y, m0.z);
+			YPR_angles.z = 0.0;  // any angle works
+			YPR_angles.x = fRpY - YPR_angles.z;
+			return false;
+		}
+	}
+
+
 }

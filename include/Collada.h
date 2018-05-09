@@ -114,6 +114,7 @@ public:
 	std::vector<ColladaKeyframe> listKeyFrames;
 
 	ColladaAnimation(string targetId, AnimationType type = AT_None, float duration = 0);
+	ColladaKeyframe getInterpolateKeyFrame_Quaternion(double time);		//todo the same for other case
 };
 
 

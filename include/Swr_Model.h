@@ -525,42 +525,6 @@ struct SWR_Anim_Values_case2_Header
 } PACKED;
 static_assert(sizeof(SWR_Anim_Values_case2_Header) == 0x8, "Incorrect structure size.");
 
-struct SWR_Anim_Values_case2
-{
-	uint32_t unk0;				// 0
-	uint16_t unk1;				// 4
-	uint16_t unk2;				// 6
-	uint32_t unk3;				// 8
-	uint32_t unk4;				// C
-	uint16_t unk5;				// 10
-	uint16_t unk6;				// 12
-	uint16_t unk7;				// 14
-	uint16_t unk8;				// 16
-	uint32_t unk9;				// 18
-	uint32_t offset_anim2_b;	// 1C
-	uint32_t unk11;				// 20
-	uint32_t unk12;				// 24
-	uint32_t unk13;				// 28
-	uint32_t unk14;				// 2C
-	uint32_t unk15;				// 30
-	uint32_t unk16;				// 34
-	uint32_t unk17;				// 38
-	uint32_t unk18;				// 3C
-} PACKED;
-static_assert(sizeof(SWR_Anim_Values_case2) == 0x40, "Incorrect structure size.");
-
-
-
-struct SWR_Anim_Values_case2_b
-{
-	uint32_t unk0;				// 0
-	uint16_t unk1;				// 4
-	uint16_t unk2;				// 6
-	uint32_t unk3;				// 8
-	uint32_t unk4;				// C
-} PACKED;
-static_assert(sizeof(SWR_Anim_Values_case2_b) == 0x10, "Incorrect structure size.");
-
 
 
 #ifdef _MSC_VER

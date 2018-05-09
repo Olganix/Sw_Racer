@@ -160,6 +160,51 @@ ColladaAnimation::ColladaAnimation(string targetId, AnimationType type, float du
 	this->type = type;
 	this->duration = duration;
 }
+/*-------------------------------------------------------------------------------\
+|                             getInterpolateKeyFrame_Quaternion					 |
+\-------------------------------------------------------------------------------*/
+ColladaKeyframe ColladaAnimation::getInterpolateKeyFrame_Quaternion(double time)
+{
+	ColladaKeyframe currentKf;
+
+	size_t nbKf = listKeyFrames.size();
+	if (nbKf == 0)											//little check.
+		return currentKf;
+	if ((nbKf == 1)||(time <= listKeyFrames.at(0).time))
+		return listKeyFrames.at(0);
+	if (time >= listKeyFrames.back().time)
+		return listKeyFrames.back();
+
+
+	for (size_t i = 0; i < nbKf; i++)
+	{
+		if (time == listKeyFrames.at(i).time)
+			return listKeyFrames.at(i);
+		
+		if (time < listKeyFrames.at(i).time)
+		{
+			ColladaKeyframe &previousKf = listKeyFrames.at(i - 1);
+			ColladaKeyframe &nextKf = listKeyFrames.at(i);
+			Quaternion prevQuad(previousKf.x, previousKf.y, previousKf.z, previousKf.w);
+			Quaternion nextQuad(nextKf.x, nextKf.y, nextKf.z, nextKf.w);
+
+			double factor = (time - previousKf.time) / (nextKf.time - previousKf.time);
+
+			Quaternion currentQuad = Slerp(factor, prevQuad, nextQuad, true);
+			//Quaternion currentQuad = Slerp(factor, prevQuad, nextQuad, false);
+			currentKf.x = (float)currentQuad.x;
+			currentKf.y = (float)currentQuad.y;
+			currentKf.z = (float)currentQuad.z;
+			currentKf.w = (float)currentQuad.w;
+
+			return currentKf;
+		}
+	}
+
+
+	return currentKf;
+}
+ 
 
 
 
@@ -591,7 +636,9 @@ void Collada::addTransformOnNode(TiXmlElement* node, Common::Vector3 position, C
 	}
 	text->SetValue(EMO_BaseFile::FloatToString((float)position.x) + " " + EMO_BaseFile::FloatToString((float)position.y) + " " + EMO_BaseFile::FloatToString((float)position.z));
 
-	
+	/*
+
+	///
 	TiXmlElement* node_rotate = node->FirstChildElement("rotate");
 	if (!node_rotate)
 	{
@@ -606,30 +653,9 @@ void Collada::addTransformOnNode(TiXmlElement* node, Common::Vector3 position, C
 		text = new TiXmlText("");
 		node_rotate->LinkEndChild(text);
 	}
-	text->SetValue(EMO_BaseFile::FloatToString(0) + " " + EMO_BaseFile::FloatToString(0) + " " + EMO_BaseFile::FloatToString(1) + " " + EMO_BaseFile::FloatToString((float)rotationAngles.x));
-
-
-	///
-
-	node_rotate = node_rotate->NextSiblingElement("rotate");
-	if (!node_rotate)
-	{
-		node_rotate = new TiXmlElement("rotate");
-		node->LinkEndChild(node_rotate);
-	}
-
-	node_rotate->SetAttribute("sid", "rotateX");
-	text = (TiXmlText*)node_rotate->FirstChild();
-	if (!text)
-	{
-		text = new TiXmlText("");
-		node_rotate->LinkEndChild(text);
-	}
-	text->SetValue(EMO_BaseFile::FloatToString(1) + " " + EMO_BaseFile::FloatToString(0) + " " + EMO_BaseFile::FloatToString(0) + " " + EMO_BaseFile::FloatToString((float)rotationAngles.y));
-
+	text->SetValue(EMO_BaseFile::FloatToString(0) + " " + EMO_BaseFile::FloatToString(0) + " " + EMO_BaseFile::FloatToString(1) + " " + EMO_BaseFile::FloatToString((float)rotationAngles.x));		//yaw
 
 	///
-
 	node_rotate = node_rotate->NextSiblingElement("rotate");
 	if (!node_rotate)
 	{
@@ -644,7 +670,87 @@ void Collada::addTransformOnNode(TiXmlElement* node, Common::Vector3 position, C
 		text = new TiXmlText("");
 		node_rotate->LinkEndChild(text);
 	}
-	text->SetValue(EMO_BaseFile::FloatToString(0) + " " + EMO_BaseFile::FloatToString(-1) + " " + EMO_BaseFile::FloatToString(0) + " " + EMO_BaseFile::FloatToString((float)rotationAngles.z));
+	text->SetValue(EMO_BaseFile::FloatToString(0) + " " + EMO_BaseFile::FloatToString(1) + " " + EMO_BaseFile::FloatToString(0) + " " + EMO_BaseFile::FloatToString((float)rotationAngles.y));			//pitch
+
+	
+	
+
+	///
+	node_rotate = node_rotate->NextSiblingElement("rotate");
+	if (!node_rotate)
+	{
+		node_rotate = new TiXmlElement("rotate");
+		node->LinkEndChild(node_rotate);
+	}
+
+	node_rotate->SetAttribute("sid", "rotateX");
+	text = (TiXmlText*)node_rotate->FirstChild();
+	if (!text)
+	{
+		text = new TiXmlText("");
+		node_rotate->LinkEndChild(text);
+	}
+	text->SetValue(EMO_BaseFile::FloatToString(1) + " " + EMO_BaseFile::FloatToString(0) + " " + EMO_BaseFile::FloatToString(0) + " " + EMO_BaseFile::FloatToString((float)rotationAngles.z));			//Roll
+	
+
+
+	*/
+	
+	///
+	TiXmlElement* node_rotate = node->FirstChildElement("rotate");
+	
+	if (!node_rotate)
+	{
+		node_rotate = new TiXmlElement("rotate");
+		node->LinkEndChild(node_rotate);
+	}
+
+	node_rotate->SetAttribute("sid", "rotateX");
+	text = (TiXmlText*)node_rotate->FirstChild();
+	if (!text)
+	{
+		text = new TiXmlText("");
+		node_rotate->LinkEndChild(text);
+	}
+	text->SetValue(EMO_BaseFile::FloatToString(1) + " " + EMO_BaseFile::FloatToString(0) + " " + EMO_BaseFile::FloatToString(0) + " " + EMO_BaseFile::FloatToString((float)rotationAngles.z));			//Roll
+
+
+																																																	///
+	node_rotate = node_rotate->NextSiblingElement("rotate");
+	if (!node_rotate)
+	{
+		node_rotate = new TiXmlElement("rotate");
+		node->LinkEndChild(node_rotate);
+	}
+
+	node_rotate->SetAttribute("sid", "rotateY");
+	text = (TiXmlText*)node_rotate->FirstChild();
+	if (!text)
+	{
+		text = new TiXmlText("");
+		node_rotate->LinkEndChild(text);
+	}
+	text->SetValue(EMO_BaseFile::FloatToString(0) + " " + EMO_BaseFile::FloatToString(1) + " " + EMO_BaseFile::FloatToString(0) + " " + EMO_BaseFile::FloatToString((float)rotationAngles.y));			//pitch
+
+	
+
+	///
+	node_rotate = node_rotate->NextSiblingElement("rotate");
+	if (!node_rotate)
+	{
+		node_rotate = new TiXmlElement("rotate");
+		node->LinkEndChild(node_rotate);
+	}
+	node_rotate->SetAttribute("sid", "rotateZ");
+	text = (TiXmlText*)node_rotate->FirstChild();
+	if (!text)
+	{
+		text = new TiXmlText("");
+		node_rotate->LinkEndChild(text);
+	}
+	text->SetValue(EMO_BaseFile::FloatToString(0) + " " + EMO_BaseFile::FloatToString(0) + " " + EMO_BaseFile::FloatToString(1) + " " + EMO_BaseFile::FloatToString((float)rotationAngles.x));		//yaw		
+
+	
 }
 /*-------------------------------------------------------------------------------\
 |                             addImage											 |
@@ -1137,6 +1243,38 @@ void Collada::addAnimation(ColladaAnimation &animation)
 		node_param->SetAttribute("name", "ANGLE");
 		node_param->SetAttribute("type", "float");
 
+
+
+		/////
+
+		node_source = new TiXmlElement("source");
+		node_anim->LinkEndChild(node_source);
+		node_source->SetAttribute("id", animName + "_values_rotY");
+
+		node_floats = new TiXmlElement("float_array");
+		node_source->LinkEndChild(node_floats);
+		node_floats->SetAttribute("id", animName + "_values_floats_rotY");
+		node_floats->SetAttribute("count", nbKeyFrames);
+		str = "";
+		for (size_t i = 0; i < nbKeyFrames; i++)
+			str += ((i == 0) ? "" : " ") + EMO_BaseFile::FloatToString((float)listRotationAngle.at(i).y);		//Pitch
+		node_floats->LinkEndChild(new TiXmlText(str));
+
+
+		node_technique_common = new TiXmlElement("technique_common");
+		node_source->LinkEndChild(node_technique_common);
+
+		node_accessor = new TiXmlElement("accessor");
+		node_technique_common->LinkEndChild(node_accessor);
+		node_accessor->SetAttribute("count", nbKeyFrames);
+		node_accessor->SetAttribute("source", "#" + animName + "_values_floats_rotY");
+		node_accessor->SetAttribute("stride", "1");
+
+		node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "ANGLE");
+		node_param->SetAttribute("type", "float");
+
 		/////
 
 		node_source = new TiXmlElement("source");
@@ -1149,7 +1287,7 @@ void Collada::addAnimation(ColladaAnimation &animation)
 		node_floats->SetAttribute("count", nbKeyFrames);
 		str = "";
 		for (size_t i = 0; i < nbKeyFrames; i++)
-			str += ((i == 0) ? "" : " ") + EMO_BaseFile::FloatToString((float)listRotationAngle.at(i).y);		//pitch
+			str += ((i == 0) ? "" : " ") + EMO_BaseFile::FloatToString((float)listRotationAngle.at(i).z);		//Roll
 		node_floats->LinkEndChild(new TiXmlText(str));
 
 
@@ -1167,35 +1305,7 @@ void Collada::addAnimation(ColladaAnimation &animation)
 		node_param->SetAttribute("name", "ANGLE");
 		node_param->SetAttribute("type", "float");
 
-		/////
-
-		node_source = new TiXmlElement("source");
-		node_anim->LinkEndChild(node_source);
-		node_source->SetAttribute("id", animName + "_values_rotY");
-
-		node_floats = new TiXmlElement("float_array");
-		node_source->LinkEndChild(node_floats);
-		node_floats->SetAttribute("id", animName + "_values_floats_rotY");
-		node_floats->SetAttribute("count", nbKeyFrames);
-		str = "";
-		for (size_t i = 0; i < nbKeyFrames; i++)
-			str += ((i == 0) ? "" : " ") + EMO_BaseFile::FloatToString((float)listRotationAngle.at(i).z);		//Roll
-		node_floats->LinkEndChild(new TiXmlText(str));
-
-
-		node_technique_common = new TiXmlElement("technique_common");
-		node_source->LinkEndChild(node_technique_common);
-
-		node_accessor = new TiXmlElement("accessor");
-		node_technique_common->LinkEndChild(node_accessor);
-		node_accessor->SetAttribute("count", nbKeyFrames);
-		node_accessor->SetAttribute("source", "#" + animName + "_values_floats_rotY");
-		node_accessor->SetAttribute("stride", "1");
-
-		node_param = new TiXmlElement("param");
-		node_accessor->LinkEndChild(node_param);
-		node_param->SetAttribute("name", "ANGLE");
-		node_param->SetAttribute("type", "float");
+		
 
 		
 	}
