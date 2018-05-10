@@ -541,7 +541,7 @@ void Collada::addGeometry(string name, std::vector<EMDVertex> &vertices, std::ve
 /*-------------------------------------------------------------------------------\
 |                             addTextureMaterial								 |
 \-------------------------------------------------------------------------------*/
-void Collada::addTextureMaterial(string name, string filename)
+void Collada::addTextureMaterial(string name, string filename, WrapMode wrap_u, WrapMode wrap_v)
 {
 	size_t nbMat = listMaterialNames.size();
 	for (size_t i = 0; i < nbMat; i++)						//avoid duplications
@@ -551,7 +551,7 @@ void Collada::addTextureMaterial(string name, string filename)
 	listMaterialNames.push_back(name);
 
 	addImage(name + "_texture", filename);
-	addEffect(name, true, name);
+	addEffect(name, true, name, "0 0 0 1", wrap_u, wrap_v);
 	addMaterial(name, name + "_effect");
 }
 /*-------------------------------------------------------------------------------\
@@ -805,7 +805,7 @@ void Collada::addImage(string name, string filename)
 /*-------------------------------------------------------------------------------\
 |                             addEffect											 |
 \-------------------------------------------------------------------------------*/
-void Collada::addEffect(string name, bool isSampler2D, string nameTexture, string color)
+void Collada::addEffect(string name, bool isSampler2D, string nameTexture, string color, WrapMode wrap_u, WrapMode wrap_v)
 {
 	checkRootFor("library_effects");
 
@@ -829,7 +829,7 @@ void Collada::addEffect(string name, bool isSampler2D, string nameTexture, strin
 
 
 	if (isSampler2D)
-		addEffectSampler2D(listEffects.at(listEffects.size() - 1), nameTexture);
+		addEffectSampler2D(listEffects.at(listEffects.size() - 1), nameTexture, wrap_u, wrap_v);
 
 
 
@@ -923,17 +923,17 @@ void Collada::addEffect(string name, bool isSampler2D, string nameTexture, strin
 /*-------------------------------------------------------------------------------\
 |                             addEffectSampler2D								 |
 \-------------------------------------------------------------------------------*/
-void Collada::addEffectSampler2D(string name, string nameTexture)
+void Collada::addEffectSampler2D(string name, string nameTexture, WrapMode wrap_u, WrapMode wrap_v)
 {
 	size_t nbMat = listEffects.size();
 	for (size_t i = 0; i < nbMat; i++)
 		if (listEffects.at(i).name == name)
-			return addEffectSampler2D(listEffects.at(i), nameTexture);
+			return addEffectSampler2D(listEffects.at(i), nameTexture, wrap_u, wrap_v);
 }
 /*-------------------------------------------------------------------------------\
 |                             addEffectSampler2D								 |
 \-------------------------------------------------------------------------------*/
-void Collada::addEffectSampler2D(Effect &effect, string nameTexture)
+void Collada::addEffectSampler2D(Effect &effect, string nameTexture, WrapMode wrap_u, WrapMode wrap_v)
 {
 	size_t nbMat = effect.listImageIdName.size();
 	for (size_t i = 0; i < nbMat; i++)						//avoid duplications
@@ -969,6 +969,20 @@ void Collada::addEffectSampler2D(Effect &effect, string nameTexture)
 	TiXmlElement* node_source = new TiXmlElement("source");
 	node_sampler2D->LinkEndChild(node_source);
 	node_source->LinkEndChild(new TiXmlText(nameTexture + "_surface"));
+
+	if (wrap_u != WM_unknow)
+	{
+		TiXmlElement* node_wrap = new TiXmlElement("wrap_s");
+		node_sampler2D->LinkEndChild(node_wrap);
+		node_wrap->LinkEndChild(new TiXmlText( ((wrap_u==0) ? "WRAP" : ((wrap_u == 1) ? "MIRROR" : "CLAMP")) ));
+	}
+	if (wrap_v != WM_unknow)
+	{
+		TiXmlElement* node_wrap = new TiXmlElement("wrap_t");
+		node_sampler2D->LinkEndChild(node_wrap);
+		node_wrap->LinkEndChild(new TiXmlText(((wrap_v == 0) ? "WRAP" : ((wrap_v == 1) ? "MIRROR" : "CLAMP"))));
+	}
+
 
 	TiXmlElement* node_minfilter = new TiXmlElement("minfilter");
 	node_sampler2D->LinkEndChild(node_minfilter);
@@ -1456,7 +1470,7 @@ void Collada::addAnimation(ColladaAnimation &animation)
 			imageName = ((((size_t)kf.x) != 0xFFFFFF) ? std::to_string((size_t)kf.x) : "empty");
 
 			addImage("Mat_" + imageName + "_texture", "texture_" + imageName + ".png");
-			addEffectSampler2D(animation.targetId.substr(0, animation.targetId.size() - 15), "Mat_" + imageName);
+			addEffectSampler2D(animation.targetId.substr(0, animation.targetId.size() - 15), "Mat_" + imageName, (WrapMode)(int)kf.y, (WrapMode)(int)kf.z);
 
 			str += ((i == 0) ? "" : " ") + string("Mat_") + imageName + "_sampler";
 		}

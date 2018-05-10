@@ -1324,6 +1324,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 								float v = (int16_t)val16(section52->uvV) / (float)0xFFF;
 								node->SetAttribute("u", FloatToString(u));
 								node->SetAttribute("v", FloatToString(v));
+								node->SetAttribute("u_u16", UnsignedToString(val16(section52->uvU), true));
+								node->SetAttribute("v_u16", UnsignedToString(val16(section52->uvV), true));
 								node = new TiXmlElement("Color");
 								node_section52->LinkEndChild(node);
 								node->SetAttribute("r", FloatToString((float)section52->colorR / 255.0f));
@@ -1692,10 +1694,6 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 								node = new TiXmlElement("unk60"); node->SetAttribute("u32", UnsignedToString(val32(section5->unk60), true)); node_section5->LinkEndChild(node);
 
 								
-								materialName = "Mat_" + textureIndex_str;
-								collada->addTextureMaterial(materialName, "texture_"+ textureIndex_str +".png");
-								collada_collision->addTextureMaterial(materialName, "texture_" + textureIndex_str + ".png");
-
 								if(section3->nbElementV52==0)
 								{
 									printf("Warning/Error: there is a Section5 with a effective textureIndex, but there is no Visual Vertex (Section52). strange ...\n");
@@ -1703,9 +1701,9 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 								}
 								
 
-								listAltN_offset.push_back(startoffset_section4);								//to do the link with animations of Section5 (case2)
-								listAltN_BonesName.push_back(materialName);
 								
+								Collada::WrapMode wrap_u = Collada::WM_unknow;
+								Collada::WrapMode wrap_v = Collada::WM_unknow;
 
 								for (size_t m = 0; m < 5; m++)
 								{
@@ -1722,9 +1720,20 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 									TiXmlElement* node_section5b = new TiXmlElement("Section5b");
 									node_section5->LinkEndChild(node_section5b);
 
+									size_t wrapModeU = section5_b->wrapModeUV & 0xF0;
+									size_t wrapModeV = section5_b->wrapModeUV & 0x0F;
+									string wrapModeU_str = ((wrapModeU == 0) ? "repeat" : ((wrapModeU == 1) ? "mirror" : "clamp"));
+									string wrapModeV_str = ((wrapModeV == 0) ? "repeat" : ((wrapModeV == 1) ? "mirror" : "clamp"));
+
+									if (wrap_u == Collada::WM_unknow)
+										wrap_u = (Collada::WrapMode)wrapModeU;
+									if (wrap_v == Collada::WM_unknow)
+										wrap_v = (Collada::WrapMode)wrapModeV;
+
 									node = new TiXmlElement("unk0"); node->SetAttribute("u16", UnsignedToString(val16(section5_b->unk0), true)); node_section5b->LinkEndChild(node);
 									node = new TiXmlElement("unk2"); node->SetAttribute("u8", UnsignedToString(section5_b->unk2, true)); node_section5b->LinkEndChild(node);
-									node = new TiXmlElement("unk3"); node->SetAttribute("u8", UnsignedToString(section5_b->unk3, true)); node_section5b->LinkEndChild(node);
+									node = new TiXmlElement("wrapModeU"); node->SetAttribute("u4", wrapModeU_str); node_section5b->LinkEndChild(node);
+									node = new TiXmlElement("wrapModeV"); node->SetAttribute("u4", wrapModeV_str); node_section5b->LinkEndChild(node);
 									node = new TiXmlElement("unk4"); node->SetAttribute("u8", UnsignedToString(section5_b->unk4, true)); node_section5b->LinkEndChild(node);
 									node = new TiXmlElement("unk5"); node->SetAttribute("u8", UnsignedToString(section5_b->unk5, true)); node_section5b->LinkEndChild(node);
 									node = new TiXmlElement("unk6_a"); node->SetAttribute("u8", UnsignedToString(val16(section5_b->unk6_a), true)); node_section5b->LinkEndChild(node);
@@ -1734,6 +1743,13 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 									node = new TiXmlElement("unk14"); node->SetAttribute("u16", UnsignedToString(val16(section5_b->unk14), true)); node_section5b->LinkEndChild(node);
 								}
 
+
+								materialName = "Mat_" + textureIndex_str;
+								collada->addTextureMaterial(materialName, "texture_" + textureIndex_str + ".png", wrap_u, wrap_v);
+								collada_collision->addTextureMaterial(materialName, "texture_" + textureIndex_str + ".png", wrap_u, wrap_v);
+
+								listAltN_offset.push_back(startoffset_section4);								//to do the link with animations of Section5 (case2)
+								listAltN_BonesName.push_back(materialName);
 							}
 
 
@@ -2092,9 +2108,6 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						resultTransformMatrix[14] = 0;
 						resultTransformMatrix[15] = 1.0;
 
-
-						if (maltNodeName == "model_1_1__76")
-							int aa = 42;
 
 						Common::decomposition4x4(&resultTransformMatrix[0], &skinning_matrix_b[0]);
 						double quaternionX = skinning_matrix_b[4];
@@ -2556,8 +2569,10 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						node = new TiXmlElement("unk60"); node->SetAttribute("u32", UnsignedToString(val32(section5->unk60), true)); node_section5->LinkEndChild(node);
 
 						
-						colladaAnim.listKeyFrames.push_back(ColladaKeyframe(listKeyframesTimes.at(j), (float)textureIndex));
+						
 
+						Collada::WrapMode wrap_u = Collada::WM_unknow;
+						Collada::WrapMode wrap_v = Collada::WM_unknow;
 
 						for (size_t m = 0; m < 5; m++)
 						{
@@ -2574,9 +2589,20 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 							TiXmlElement* node_section5b = new TiXmlElement("Section5b");
 							node_section5->LinkEndChild(node_section5b);
 
+							size_t wrapModeU = section5_b->wrapModeUV & 0xF0;
+							size_t wrapModeV = section5_b->wrapModeUV & 0x0F;
+							string wrapModeU_str = ((wrapModeU == 0) ? "repeat" : ((wrapModeU == 1) ? "mirror" : "clamp"));
+							string wrapModeV_str = ((wrapModeV == 0) ? "repeat" : ((wrapModeV == 1) ? "mirror" : "clamp"));
+
+							if (wrap_u == Collada::WM_unknow)
+								wrap_u = (Collada::WrapMode)wrapModeU;
+							if (wrap_v == Collada::WM_unknow)
+								wrap_v = (Collada::WrapMode)wrapModeV;
+
 							node = new TiXmlElement("unk0"); node->SetAttribute("u16", UnsignedToString(val16(section5_b->unk0), true)); node_section5b->LinkEndChild(node);
 							node = new TiXmlElement("unk2"); node->SetAttribute("u8", UnsignedToString(section5_b->unk2, true)); node_section5b->LinkEndChild(node);
-							node = new TiXmlElement("unk3"); node->SetAttribute("u8", UnsignedToString(section5_b->unk3, true)); node_section5b->LinkEndChild(node);
+							node = new TiXmlElement("wrapModeU"); node->SetAttribute("u4", wrapModeU_str); node_section5b->LinkEndChild(node);
+							node = new TiXmlElement("wrapModeV"); node->SetAttribute("u4", wrapModeV_str); node_section5b->LinkEndChild(node);
 							node = new TiXmlElement("unk4"); node->SetAttribute("u8", UnsignedToString(section5_b->unk4, true)); node_section5b->LinkEndChild(node);
 							node = new TiXmlElement("unk5"); node->SetAttribute("u8", UnsignedToString(section5_b->unk5, true)); node_section5b->LinkEndChild(node);
 							node = new TiXmlElement("unk6_a"); node->SetAttribute("u8", UnsignedToString(val16(section5_b->unk6_a), true)); node_section5b->LinkEndChild(node);
@@ -2585,6 +2611,9 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 							node = new TiXmlElement("unk12"); node->SetAttribute("u16", UnsignedToString(val16(section5_b->unk12), true)); node_section5b->LinkEndChild(node);
 							node = new TiXmlElement("unk14"); node->SetAttribute("u16", UnsignedToString(val16(section5_b->unk14), true)); node_section5b->LinkEndChild(node);
 						}
+
+
+						colladaAnim.listKeyFrames.push_back(ColladaKeyframe(listKeyframesTimes.at(j), (float)textureIndex, (float)(int)wrap_u, (float)(int)wrap_v));
 					}
 
 
@@ -2594,7 +2623,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						collada_collision->addAnimation(colladaAnim);
 					}
 
-				}
+				}break;
 
 				case 5:
 				{
@@ -3469,7 +3498,7 @@ void Swr_Model::write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_
 
 										write_Coloration_Tag("unk0", "uint16_t", "always 0", offset, sizeof(uint16_t), "SWR_MODEL_Section5_b", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint16_t);
 										write_Coloration_Tag("unk2", "uint8_t", "1, 2, 4 (most), 5, 8, 0x10. look like flags", offset, sizeof(uint8_t), "SWR_MODEL_Section5_b", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
-										write_Coloration_Tag("unk3", "uint8_t", "it's 2 uint4: 0 (most), 1, 2.  and for the second (right) 0(most), 1, 2", offset, sizeof(uint8_t), "SWR_MODEL_Section5_b", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
+										write_Coloration_Tag("wrapModeUV", "uint8_t", "it's 2 uint4: 0 (most), 1, 2.  and for the second (right) 0(most), 1, 2. uint4 for U, uint4 for V. 0 : tiles/repeat, 1: mirror, 2: clamp.", offset, sizeof(uint8_t), "SWR_MODEL_Section5_b", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
 										write_Coloration_Tag("unk4", "uint8_t", "0, 2, 3, 4, 5, 6 (most), 7. look like flags", offset, sizeof(uint8_t), "SWR_MODEL_Section5_b", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
 										write_Coloration_Tag("unk5", "uint8_t", "0, 2, 3, 4, 5, 6 (most), 7. look like flags", offset, sizeof(uint8_t), "SWR_MODEL_Section5_b", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
 										write_Coloration_Tag("unk6_a", "uint8_t", "0 (most), 0xfe, or 0xff", offset, sizeof(uint8_t), "SWR_MODEL_Section5_b", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
@@ -3927,7 +3956,7 @@ void Swr_Model::write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_
 
 							write_Coloration_Tag("unk0", "uint16_t", "always 0", offset, sizeof(uint16_t), "SWR_MODEL_Section5_b", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint16_t);
 							write_Coloration_Tag("unk2", "uint8_t", "1, 2, 4 (most), 5, 8, 0x10. look like flags", offset, sizeof(uint8_t), "SWR_MODEL_Section5_b", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint8_t);
-							write_Coloration_Tag("unk3", "uint8_t", "it's 2 uint4: 0 (most), 1, 2.  and for the second (right) 0(most), 1, 2", offset, sizeof(uint8_t), "SWR_MODEL_Section5_b", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint8_t);
+							write_Coloration_Tag("wrapModeUV", "uint8_t", "it's 2 uint4: 0 (most), 1, 2.  and for the second (right) 0(most), 1, 2. uint4 for U, uint4 for V. 0 : tiles/repeat, 1: mirror, 2: clamp.", offset, sizeof(uint8_t), "SWR_MODEL_Section5_b", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint8_t);
 							write_Coloration_Tag("unk4", "uint8_t", "0, 2, 3, 4, 5, 6 (most), 7. look like flags", offset, sizeof(uint8_t), "SWR_MODEL_Section5_b", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint8_t);
 							write_Coloration_Tag("unk5", "uint8_t", "0, 2, 3, 4, 5, 6 (most), 7. look like flags", offset, sizeof(uint8_t), "SWR_MODEL_Section5_b", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint8_t);
 							write_Coloration_Tag("unk6_a", "uint8_t", "0 (most), 0xfe, or 0xff", offset, sizeof(uint8_t), "SWR_MODEL_Section5_b", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint8_t);

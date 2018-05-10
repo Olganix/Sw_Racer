@@ -256,7 +256,7 @@ struct SWR_MODEL_Section5_b
 {
 	uint16_t unk0;				// 0
 	uint8_t	 unk2;				// 2
-	uint8_t	 unk3;				// 3
+	uint8_t	 wrapModeUV;		// 3	uint4 for U, uint4 for V. 0 : tiles/repeat, 1: mirror, 2: clamp.
 	uint8_t	 unk4;				// 4
 	uint8_t	 unk5;				// 5
 	uint8_t unk6_a;				// 6

@@ -128,6 +128,14 @@ public:
 class Collada
 {
 public:
+	enum WrapMode
+	{
+		WM_unknow = -1,
+		WM_repeat = 0,
+		WM_mirror,					//also repeat
+		Wm_Clamp,
+	};
+
 	struct Effect
 	{
 		string name;
@@ -165,7 +173,7 @@ public:
 
 	//usual function
 	void addGeometry(string name, std::vector<EMDVertex> &vertices, std::vector<EMDTriangles> &triangles, string materialName);
-	void addTextureMaterial(string name, string filename);
+	void addTextureMaterial(string name, string filename, WrapMode wrap_u, WrapMode wrap_v);
 	void addColorMaterial(string name, string color);
 	void addAnimation(ColladaAnimation &animation);
 	void addAnimationExtraInformations(float framePerSecond, float startTime, float endTime);
@@ -181,9 +189,9 @@ public:
 private:
 	//macro function
 	void addImage(string name, string filename);
-	void addEffect(string name, bool isSampler2D = true, string nameTexture = "", string color = "0 0 0 1");
-	void addEffectSampler2D(string name, string nameTexture = "");
-	void addEffectSampler2D(Effect &effect, string nameTexture = "");
+	void addEffect(string name, bool isSampler2D = true, string nameTexture = "", string color = "0 0 0 1", WrapMode wrap_u = WM_unknow, WrapMode wrap_v = WM_unknow);
+	void addEffectSampler2D(string name, string nameTexture = "", WrapMode wrap_u = WM_unknow, WrapMode wrap_v = WM_unknow);
+	void addEffectSampler2D(Effect &effect, string nameTexture = "", WrapMode wrap_u = WM_unknow, WrapMode wrap_v = WM_unknow);
 	void addMaterial(string name, string nameEffect);
 	void checkRootFor(string tagName);
 };
