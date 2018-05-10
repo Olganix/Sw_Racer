@@ -4,11 +4,14 @@
 #define COMMON_H_INCLUDED
 
 
-// Common Includes		TODO making good for linux.
+// Common Includes
 #include "half.h"
 #include <algorithm>
 #include <iomanip>
 #include <vector>
+
+// For sqrt
+#include <cmath>
 
 #include "tinyxml.h"
 
