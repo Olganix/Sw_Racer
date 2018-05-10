@@ -483,9 +483,15 @@ namespace Common
 
 	const Vector2 Vector2::zero(0, 0);
 	const Vector3 Vector3::zero(0,0,0);
+	const Vector3 Vector3::unit(1, 1, 1);
+	const Vector3 Vector3::unit_X(1, 0,0);
+	const Vector3 Vector3::unit_Y(0, 1, 0);
+	const Vector3 Vector3::unit_Z(0, 0, 1);
+	const Vector3 Vector3::unit_nX(-1, 0, 0);
+	const Vector3 Vector3::unit_nY(0, -1, 0);
+	const Vector3 Vector3::unit_nZ(0, 0, -1);
 	const Quaternion Quaternion::iddentity(0, 0, 0, 1);
 	
-
 	/*-------------------------------------------------------------------------------\
 	|                             crossProduct			                             |
 	\-------------------------------------------------------------------------------*/

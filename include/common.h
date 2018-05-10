@@ -111,6 +111,13 @@ namespace Common
 		void Normalize() { double length = Length(); if (length != 0.0) { x /= length; y /= length; z /= length; } }
 		static bool equals(Vector3 a, Vector3 b, double eps = 0.000001) { return (a - b).Length() < eps ; }
 		static const Vector3 zero;
+		static const Vector3 unit;
+		static const Vector3 unit_X;
+		static const Vector3 unit_Y;
+		static const Vector3 unit_Z;
+		static const Vector3 unit_nX;
+		static const Vector3 unit_nY;
+		static const Vector3 unit_nZ;
 	};
 	struct Quaternion
 	{

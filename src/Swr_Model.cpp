@@ -1286,6 +1286,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						string submeshName = maltNodeName + "_submesh_" + std::to_string(k);
 
 
+						
+
 						//--------------------------------  Visual Geometry
 						if (section3->offset_unk52)
 						{
@@ -1637,6 +1639,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 							size_t startoffset_section4 = section3->offset_section4 + hdr->offset_Section2;
 							offset = startoffset_section4;
 
+
 							SWR_MODEL_Section4* section4 = (SWR_MODEL_Section4*)GetOffsetPtr(buf, offset, true);
 							offset += sizeof(SWR_MODEL_Section4);
 							section4->offset_section5 = val32(section4->offset_section5);
@@ -1700,6 +1703,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 								}
 								
 
+								listAltN_offset.push_back(startoffset_section4);								//to do the link with animations of Section5 (case2)
+								listAltN_BonesName.push_back(materialName);
 								
 
 								for (size_t m = 0; m < 5; m++)
@@ -2063,6 +2068,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 					float rotAngle = 0;
 
 					Vector3 rotationAngle = Vector3::zero;
+					Vector3 scale = Vector3::unit;
 					{
 						double skinning_matrix_b[12];						//special tranformation from observation between skinningMatrix and transformMatrix
 						double resultTransformMatrix[16];
@@ -2095,6 +2101,9 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						double quaternionY = skinning_matrix_b[5];
 						double quaternionZ = skinning_matrix_b[6];
 						double quaternionW = skinning_matrix_b[7];
+
+
+						scale = Vector3(skinning_matrix_b[8], skinning_matrix_b[9], skinning_matrix_b[10]);
 
 						{
 							Quaternion quad = Quaternion(quaternionX, quaternionY, quaternionZ, quaternionW);
@@ -2140,8 +2149,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						}
 					}
 
-					collada->addTransformOnNode(collada_node, Vector3(val_float(section->posX), val_float(section->posY), val_float(section->posZ)), rotationAngle);
-					collada_collision->addTransformOnNode(collada_node, Vector3(val_float(section->posX), val_float(section->posY), val_float(section->posZ)), rotationAngle);
+					collada->addTransformOnNode(collada_node, Vector3(val_float(section->posX), val_float(section->posY), val_float(section->posZ)), rotationAngle, scale);
+					collada_collision->addTransformOnNode(collada_node, Vector3(val_float(section->posX), val_float(section->posY), val_float(section->posZ)), rotationAngle, scale);
 				}
 				break;
 
@@ -2198,6 +2207,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 					float rotAngle = 0;
 
 					Vector3 rotationAngle = Vector3::zero;
+					Vector3 scale = Vector3::unit;
 					{
 						double skinning_matrix_b[12];						//special tranformation from observation between skinningMatrix and transformMatrix
 						double resultTransformMatrix[16];
@@ -2234,6 +2244,9 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						double quaternionY = skinning_matrix_b[5];
 						double quaternionZ = skinning_matrix_b[6];
 						double quaternionW = skinning_matrix_b[7];
+
+
+						scale = Vector3(skinning_matrix_b[8], skinning_matrix_b[9], skinning_matrix_b[10]);
 
 						{
 							Quaternion quad = Quaternion(quaternionX, quaternionY, quaternionZ, quaternionW);
@@ -2310,8 +2323,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 					rotationAngle.z *= -1;
 					*/
 					
-					collada->addTransformOnNode(collada_node, Vector3(val_float(section->posX), val_float(section->posY), val_float(section->posZ)), rotationAngle);
-					collada_collision->addTransformOnNode(collada_node, Vector3(val_float(section->posX), val_float(section->posY), val_float(section->posZ)), rotationAngle);
+					collada->addTransformOnNode(collada_node, Vector3(val_float(section->posX), val_float(section->posY), val_float(section->posZ)), rotationAngle, scale);
+					collada_collision->addTransformOnNode(collada_node, Vector3(val_float(section->posX), val_float(section->posY), val_float(section->posZ)), rotationAngle, scale);
 				}
 				break;
 
@@ -2455,6 +2468,9 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 				}
 			}
 
+
+			
+
 			if (hdr_anim->offset_values)
 			{
 				size_t startSectionAnim_Values = hdr_anim->offset_values + hdr->offset_Section2;
@@ -2465,11 +2481,11 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 				{
 				case 1: case 0xB: case 0xC:	nbComponents = 1; break;
 				case 4:						nbComponents = 2; break;
-				case 7: case 9: case 0xA:	nbComponents = 3; break;
-				case 6: case 8:				nbComponents = 4; break;
+				case 7: case 9: case 0xA:	nbComponents = 3; break;				//after analyze, there isn't any case 7 inside datas.
+				case 6: case 8:				nbComponents = 4; break;				//after analyze, there  isn't any case 6 inside datas.
 
 
-				case 2:
+				case 2:																//texture animation
 				{
 					offset = hdr_anim->offset_AltN + hdr->offset_Section2;
 					SWR_Anim_Values_case2_Header* hdr_anim2 = (SWR_Anim_Values_case2_Header*)GetOffsetPtr(buf, offset, true);
@@ -2483,9 +2499,22 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 					offset = hdr_anim->offset_values + hdr->offset_Section2;
 					uint32_t* listOffset = (uint32_t*)GetOffsetPtr(buf, offset, true);
 					
-					//todo get the list of Section4 to have the ref
-					//ColladaAnimation colladaAnim(, ColladaAnimation::AT_TextureIndex, hdr_anim->nbKeyFrames);
 
+					ColladaAnimation colladaAnim("", ColladaAnimation::AT_None, (float)hdr_anim->nbKeyFrames);
+
+					//find Node referenced
+					size_t offset_section4 = val32(hdr_anim2->offset_section4) + hdr->offset_Section2;
+					size_t nbAlt = listAltN_offset.size();
+					for (size_t j = 0; j < nbAlt; j++)
+					{
+						if (offset_section4 == listAltN_offset.at(j))
+						{
+							colladaAnim.targetId = listAltN_BonesName.at(j) + "_effect_diffuse";
+							colladaAnim.type = ColladaAnimation::AT_TextureIndex;
+							break;
+						}
+					}
+					
 					for (size_t j = 0; j < hdr_anim->nbKeyFrames; j++)
 					{
 						size_t startoffset_section5 = val32(listOffset[j]) + hdr->offset_Section2;
@@ -2526,6 +2555,10 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						node = new TiXmlElement("textureIndex"); node->SetAttribute("u24", textureIndex_str); node_section5->LinkEndChild(node);
 						node = new TiXmlElement("unk60"); node->SetAttribute("u32", UnsignedToString(val32(section5->unk60), true)); node_section5->LinkEndChild(node);
 
+						
+						colladaAnim.listKeyFrames.push_back(ColladaKeyframe(listKeyframesTimes.at(j), (float)textureIndex));
+
+
 						for (size_t m = 0; m < 5; m++)
 						{
 							if (!section5->offset_Section5_b[m])
@@ -2553,6 +2586,14 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 							node = new TiXmlElement("unk14"); node->SetAttribute("u16", UnsignedToString(val16(section5_b->unk14), true)); node_section5b->LinkEndChild(node);
 						}
 					}
+
+
+					if (colladaAnim.targetId.length() != 0)
+					{
+						collada->addAnimation(colladaAnim);
+						collada_collision->addAnimation(colladaAnim);
+					}
+
 				}
 
 				case 5:
@@ -2600,16 +2641,23 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						
 						node_Anim->SetAttribute("targetId", colladaAnim.targetId);
 						
-						if (nbComponents == 4)
+						if ((hdr_anim->flags & 0x0F) == 8)
 						{
 							colladaAnim.type = ColladaAnimation::AT_Rotation;
-						}else{
-							
-							//todo analyze to make the difference between position and scale.
-							if ((hdr_anim->flags & 0x0F) == 9)
-								colladaAnim.type = ColladaAnimation::AT_Position;
-							else
-								int aa = 42;
+
+						}else if ((hdr_anim->flags & 0x0F) == 9) {
+							colladaAnim.type = ColladaAnimation::AT_Position;
+
+						}else if ((hdr_anim->flags & 0x0F) == 0xA) {
+							colladaAnim.type = ColladaAnimation::AT_Scale;
+
+						}else if ((hdr_anim->flags & 0x0F) == 0xB) {								//may be transparence or fade
+							colladaAnim.targetId += "_transparency";						// sid on transparence is not allowed, but transparency yes ...
+							colladaAnim.type = ColladaAnimation::AT_Transparence;
+
+						}else if ((hdr_anim->flags & 0x0F) == 0xC) {								//may be transparence or fade
+							colladaAnim.targetId += "_transparency";
+							colladaAnim.type = ColladaAnimation::AT_Transparency;
 						}
 					}
 
@@ -2764,6 +2812,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 
 						collada->addAnimation(colladaAnim);
+						collada_collision->addAnimation(colladaAnim);
 					}
 				}
 			}

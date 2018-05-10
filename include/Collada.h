@@ -104,6 +104,8 @@ public:
 		AT_Rotation,
 		AT_Scale,
 		AT_TextureIndex,
+		AT_Transparence,
+		AT_Transparency,
 	};
 
 	string name;										//Notice: on the createAnimationsTags(), all ColladaAnimation with the same name will have the maxduration of all.
@@ -126,6 +128,17 @@ public:
 class Collada
 {
 public:
+	struct Effect
+	{
+		string name;
+		std::vector<string> listImageIdName;
+		TiXmlElement* node_effect;
+		TiXmlElement* node_profile_COMMON;
+		
+		Effect(string name) { this->name = name; node_effect = 0; node_profile_COMMON = 0; }
+	};
+
+
 	string filename;
 
 	TiXmlDocument *doc;
@@ -143,6 +156,8 @@ public:
 	TiXmlElement* node_scene;
 
 	std::vector<string> listMaterialNames;
+	std::vector<string> listTextureNames;
+	std::vector<Effect> listEffects;
 
 public:
 	Collada();
@@ -157,9 +172,9 @@ public:
 	
 
 
-	TiXmlElement* createNode(string name, TiXmlElement* parentNode = 0, Common::Vector3 position = Common::Vector3::zero, Common::Vector3 rotationAngles = Common::Vector3::zero, string instanceGeometryName = "", string materialName = "", bool haveTexture = false);
+	TiXmlElement* createNode(string name, TiXmlElement* parentNode = 0, Common::Vector3 position = Common::Vector3::zero, Common::Vector3 rotationAngles = Common::Vector3::zero, string instanceGeometryName = "", string materialName = "", bool haveTexture = false, Common::Vector3 scale = Common::Vector3::unit);
 	void makeInstanceGeometryOnNode(TiXmlElement* node, string instanceGeometryName, string materialName = "", bool haveTexture = false);
-	void addTransformOnNode(TiXmlElement* node = 0, Common::Vector3 position = Common::Vector3::zero, Common::Vector3 rotationAngles = Common::Vector3::zero);
+	void addTransformOnNode(TiXmlElement* node = 0, Common::Vector3 position = Common::Vector3::zero, Common::Vector3 rotationAngles = Common::Vector3::zero, Common::Vector3 scale = Common::Vector3::unit);
 
 	void save(string filename);
 
@@ -167,6 +182,8 @@ private:
 	//macro function
 	void addImage(string name, string filename);
 	void addEffect(string name, bool isSampler2D = true, string nameTexture = "", string color = "0 0 0 1");
+	void addEffectSampler2D(string name, string nameTexture = "");
+	void addEffectSampler2D(Effect &effect, string nameTexture = "");
 	void addMaterial(string name, string nameEffect);
 	void checkRootFor(string tagName);
 };

@@ -515,7 +515,16 @@ struct SWR_Anim_Header
 } PACKED;
 static_assert(sizeof(SWR_Anim_Header) == 0x12C, "Incorrect structure size.");
 
+/*
+flags with mask 0x0F :
+1, 0xB or 0xC => 1 component, "1" never used, 0xB and 0xC could be transparence and fade.
+4			  => 2 comp, never used
+7, 9 or 0xA	  => 3 comp, "7" never used, 9 is position, 0xA is for scale.
+6 or 8 (most) => 4 comp, "6" never used, 8 is for Axis + Angle.
 
+2			  => definition of the Section5 For Textures (could have s5b), but in pratice, only TextureIndex change.
+5			  => unknow, may be make reference to a spline ?
+*/
 
 
 struct SWR_Anim_Values_case2_Header

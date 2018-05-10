@@ -551,7 +551,7 @@ void Collada::addTextureMaterial(string name, string filename)
 	listMaterialNames.push_back(name);
 
 	addImage(name + "_texture", filename);
-	addEffect(name, true, name + "_texture");
+	addEffect(name, true, name);
 	addMaterial(name, name + "_effect");
 }
 /*-------------------------------------------------------------------------------\
@@ -574,7 +574,7 @@ void Collada::addColorMaterial(string name, string color)
 /*-------------------------------------------------------------------------------\
 |                             createNode										 |
 \-------------------------------------------------------------------------------*/
-TiXmlElement* Collada::createNode(string name, TiXmlElement* parentNode, Vector3 position, Vector3 rotationAngles, string instanceGeometryName, string materialName, bool haveTexture)
+TiXmlElement* Collada::createNode(string name, TiXmlElement* parentNode, Vector3 position, Vector3 rotationAngles, string instanceGeometryName, string materialName, bool haveTexture, Common::Vector3 scale)
 {
 	if (!parentNode)
 		parentNode = node_visual_scene;
@@ -585,7 +585,7 @@ TiXmlElement* Collada::createNode(string name, TiXmlElement* parentNode, Vector3
 	node->SetAttribute("id", name);
 	node->SetAttribute("name", name);
 
-	addTransformOnNode(node, position, rotationAngles);
+	addTransformOnNode(node, position, rotationAngles, scale);
 
 	if (instanceGeometryName.length() != 0)
 		makeInstanceGeometryOnNode(node, instanceGeometryName, materialName, haveTexture);
@@ -618,7 +618,7 @@ void Collada::makeInstanceGeometryOnNode(TiXmlElement* node, string instanceGeom
 /*-------------------------------------------------------------------------------\
 |                             addTransformOnNode								 |
 \-------------------------------------------------------------------------------*/
-void Collada::addTransformOnNode(TiXmlElement* node, Common::Vector3 position, Common::Vector3 rotationAngles)
+void Collada::addTransformOnNode(TiXmlElement* node, Common::Vector3 position, Common::Vector3 rotationAngles, Common::Vector3 scale)
 {
 	TiXmlElement* node_translate = node->FirstChildElement("translate");
 	if (!node_translate)
@@ -636,6 +636,8 @@ void Collada::addTransformOnNode(TiXmlElement* node, Common::Vector3 position, C
 	}
 	text->SetValue(EMO_BaseFile::FloatToString((float)position.x) + " " + EMO_BaseFile::FloatToString((float)position.y) + " " + EMO_BaseFile::FloatToString((float)position.z));
 
+
+	////////////////////////////////////////////
 	/*
 
 	///
@@ -751,6 +753,27 @@ void Collada::addTransformOnNode(TiXmlElement* node, Common::Vector3 position, C
 	text->SetValue(EMO_BaseFile::FloatToString(0) + " " + EMO_BaseFile::FloatToString(0) + " " + EMO_BaseFile::FloatToString(1) + " " + EMO_BaseFile::FloatToString((float)rotationAngles.x));		//yaw		
 
 	
+																																																	
+																																																	
+	////////////////////////////////////
+
+
+	TiXmlElement* node_scale = node->FirstChildElement("scale");
+	if (!node_scale)
+	{
+		node_scale = new TiXmlElement("scale");
+		node->LinkEndChild(node_scale);
+	}
+
+	node_scale->SetAttribute("sid", "scale");
+	text = (TiXmlText*)node_scale->FirstChild();
+	if (!text)
+	{
+		text = new TiXmlText("");
+		node_scale->LinkEndChild(text);
+	}
+	text->SetValue(EMO_BaseFile::FloatToString((float)scale.x) + " " + EMO_BaseFile::FloatToString((float)scale.y) + " " + EMO_BaseFile::FloatToString((float)scale.z));
+
 }
 /*-------------------------------------------------------------------------------\
 |                             addImage											 |
@@ -759,6 +782,13 @@ void Collada::addImage(string name, string filename)
 {
 	checkRootFor("library_images");
 	
+	size_t nbMat = listTextureNames.size();
+	for (size_t i = 0; i < nbMat; i++)						//avoid duplications
+		if (listTextureNames.at(i) == name)
+			return;
+	listTextureNames.push_back(name);
+
+
 	TiXmlElement* node_image = new TiXmlElement("image");
 	node_library_images->LinkEndChild(node_image);
 	node_image->SetAttribute("id", name);
@@ -769,6 +799,9 @@ void Collada::addImage(string name, string filename)
 	node_image->LinkEndChild(node_init_from);
 	node_init_from->LinkEndChild(new TiXmlText(filename));
 }
+
+
+
 /*-------------------------------------------------------------------------------\
 |                             addEffect											 |
 \-------------------------------------------------------------------------------*/
@@ -776,52 +809,29 @@ void Collada::addEffect(string name, bool isSampler2D, string nameTexture, strin
 {
 	checkRootFor("library_effects");
 
+	size_t nbMat = listEffects.size();
+	for (size_t i = 0; i < nbMat; i++)						//avoid duplications
+		if (listEffects.at(i).name == name)
+			return;
+	listEffects.push_back(Effect(name));
+
+
 	TiXmlElement* node_effect = new TiXmlElement("effect");
 	node_library_effects->LinkEndChild(node_effect);
 	node_effect->SetAttribute("id", name +"_effect");
 
+	listEffects.back().node_effect = node_effect;
+
 	TiXmlElement* node_profile_COMMON = new TiXmlElement("profile_COMMON");
 	node_effect->LinkEndChild(node_profile_COMMON);
+	listEffects.back().node_profile_COMMON = node_profile_COMMON;
+
+
 
 	if (isSampler2D)
-	{
-
-		TiXmlElement* node_newparam = new TiXmlElement("newparam");
-		node_profile_COMMON->LinkEndChild(node_newparam);
-		node_newparam->SetAttribute("sid", name + "_surface");
-
-		TiXmlElement* node_surface = new TiXmlElement("surface");
-		node_newparam->LinkEndChild(node_surface);
-		node_surface->SetAttribute("type", "2D");
-
-		TiXmlElement* node_init_from = new TiXmlElement("init_from");
-		node_surface->LinkEndChild(node_init_from);
-		node_init_from->LinkEndChild(new TiXmlText(name +"_texture"));
+		addEffectSampler2D(listEffects.at(listEffects.size() - 1), nameTexture);
 
 
-		///////////////
-
-
-		node_newparam = new TiXmlElement("newparam");
-		node_profile_COMMON->LinkEndChild(node_newparam);
-		node_newparam->SetAttribute("sid", name + "_sampler");
-
-		TiXmlElement* node_sampler2D = new TiXmlElement("sampler2D");
-		node_newparam->LinkEndChild(node_sampler2D);
-
-		TiXmlElement* node_source = new TiXmlElement("source");
-		node_sampler2D->LinkEndChild(node_source);
-		node_source->LinkEndChild(new TiXmlText(name + "_surface"));
-
-		TiXmlElement* node_minfilter = new TiXmlElement("minfilter");
-		node_sampler2D->LinkEndChild(node_minfilter);
-		node_minfilter->LinkEndChild(new TiXmlText("LINEAR_MIPMAP_LINEAR"));
-
-		TiXmlElement* node_magfilter = new TiXmlElement("magfilter");
-		node_sampler2D->LinkEndChild(node_magfilter);
-		node_magfilter->LinkEndChild(new TiXmlText("LINEAR"));
-
-	}
 
 	///////////////
 
@@ -850,6 +860,7 @@ void Collada::addEffect(string name, bool isSampler2D, string nameTexture, strin
 
 	TiXmlElement* node_diffuse = new TiXmlElement("diffuse");
 	node_blinn->LinkEndChild(node_diffuse);
+	node_diffuse->SetAttribute("sid", name + "_effect_diffuse");
 	if (isSampler2D)
 	{
 		TiXmlElement* node_texture = new TiXmlElement("texture");
@@ -896,8 +907,10 @@ void Collada::addEffect(string name, bool isSampler2D, string nameTexture, strin
 
 	TiXmlElement* node_transparency = new TiXmlElement("transparency");
 	node_blinn->LinkEndChild(node_transparency);
+	node_transparency->SetAttribute("sid", name + "_transparency");
 	node_float = new TiXmlElement("float");
 	node_transparency->LinkEndChild(node_float);
+	node_float->SetAttribute("sid", "float");
 	node_float->LinkEndChild(new TiXmlText("1"));
 
 	TiXmlElement* node_index_of_refraction = new TiXmlElement("index_of_refraction");
@@ -905,6 +918,65 @@ void Collada::addEffect(string name, bool isSampler2D, string nameTexture, strin
 	node_float = new TiXmlElement("float");
 	node_index_of_refraction->LinkEndChild(node_float);
 	node_float->LinkEndChild(new TiXmlText("1"));
+}
+
+/*-------------------------------------------------------------------------------\
+|                             addEffectSampler2D								 |
+\-------------------------------------------------------------------------------*/
+void Collada::addEffectSampler2D(string name, string nameTexture)
+{
+	size_t nbMat = listEffects.size();
+	for (size_t i = 0; i < nbMat; i++)
+		if (listEffects.at(i).name == name)
+			return addEffectSampler2D(listEffects.at(i), nameTexture);
+}
+/*-------------------------------------------------------------------------------\
+|                             addEffectSampler2D								 |
+\-------------------------------------------------------------------------------*/
+void Collada::addEffectSampler2D(Effect &effect, string nameTexture)
+{
+	size_t nbMat = effect.listImageIdName.size();
+	for (size_t i = 0; i < nbMat; i++)						//avoid duplications
+		if (effect.listImageIdName.at(i) == nameTexture)
+			return;
+	effect.listImageIdName.push_back(nameTexture);
+
+
+
+	TiXmlElement* node_newparam = new TiXmlElement("newparam");
+	effect.node_profile_COMMON->LinkEndChild(node_newparam);
+	node_newparam->SetAttribute("sid", nameTexture + "_surface");
+
+	TiXmlElement* node_surface = new TiXmlElement("surface");
+	node_newparam->LinkEndChild(node_surface);
+	node_surface->SetAttribute("type", "2D");
+
+	TiXmlElement* node_init_from = new TiXmlElement("init_from");
+	node_surface->LinkEndChild(node_init_from);
+	node_init_from->LinkEndChild(new TiXmlText(nameTexture + "_texture"));
+
+
+	///////////////
+
+
+	node_newparam = new TiXmlElement("newparam");
+	effect.node_profile_COMMON->LinkEndChild(node_newparam);
+	node_newparam->SetAttribute("sid", nameTexture + "_sampler");
+
+	TiXmlElement* node_sampler2D = new TiXmlElement("sampler2D");
+	node_newparam->LinkEndChild(node_sampler2D);
+
+	TiXmlElement* node_source = new TiXmlElement("source");
+	node_sampler2D->LinkEndChild(node_source);
+	node_source->LinkEndChild(new TiXmlText(nameTexture + "_surface"));
+
+	TiXmlElement* node_minfilter = new TiXmlElement("minfilter");
+	node_sampler2D->LinkEndChild(node_minfilter);
+	node_minfilter->LinkEndChild(new TiXmlText("LINEAR_MIPMAP_LINEAR"));
+
+	TiXmlElement* node_magfilter = new TiXmlElement("magfilter");
+	node_sampler2D->LinkEndChild(node_magfilter);
+	node_magfilter->LinkEndChild(new TiXmlText("LINEAR"));
 }
 /*-------------------------------------------------------------------------------\
 |                             addMaterial										 |
@@ -1086,12 +1158,13 @@ void Collada::addAnimation(ColladaAnimation &animation)
 	case ColladaAnimation::AT_Position: targetAnimType = "transl"; nbComponents = 3;  break;
 	case ColladaAnimation::AT_Rotation: targetAnimType = "rotate";  nbComponents = 1; break;
 	case ColladaAnimation::AT_Scale: targetAnimType = "scale";  nbComponents = 3; break;
-	case ColladaAnimation::AT_TextureIndex: targetAnimType = "init_from";  nbComponents = 1; break;
-
-	}
-	if (targetAnimType.length() == 0)
+	case ColladaAnimation::AT_TextureIndex: targetAnimType = "texture";  nbComponents = 1; break;
+	case ColladaAnimation::AT_Transparence: targetAnimType = "float";  nbComponents = 4; break;
+	case ColladaAnimation::AT_Transparency: targetAnimType = "float";  nbComponents = 1; break;
+	default:
 		return;
-
+	}
+	
 	string animName = animation.targetId + "_anim_" + targetAnimType;
 	size_t nbKeyFrames = animation.listKeyFrames.size();
 
@@ -1376,13 +1449,18 @@ void Collada::addAnimation(ColladaAnimation &animation)
 		node_Name_array->SetAttribute("id", animName + "_values_array");
 		node_Name_array->SetAttribute("count", nbKeyFrames * 3);
 		str = "";
+		string imageName = "";
 		for (size_t i = 0; i < nbKeyFrames; i++)
 		{
 			ColladaKeyframe &kf = animation.listKeyFrames.at(i);
+			imageName = ((((size_t)kf.x) != 0xFFFFFF) ? std::to_string((size_t)kf.x) : "empty");
 
-			str += ((i == 0) ? "" : " ") + ("texture_" + ((((size_t)kf.x) != 0xFFFFFF) ?  std::to_string((size_t)kf.x) : "empty") +".png");
+			addImage("Mat_" + imageName + "_texture", "texture_" + imageName + ".png");
+			addEffectSampler2D(animation.targetId.substr(0, animation.targetId.size() - 15), "Mat_" + imageName);
+
+			str += ((i == 0) ? "" : " ") + string("Mat_") + imageName + "_sampler";
 		}
-		node_floats->LinkEndChild(new TiXmlText(str));
+		node_Name_array->LinkEndChild(new TiXmlText(str));
 
 
 		TiXmlElement* node_technique_common = new TiXmlElement("technique_common");
@@ -1399,6 +1477,95 @@ void Collada::addAnimation(ColladaAnimation &animation)
 		node_param->SetAttribute("type", "name");
 	}
 	break;
+
+
+
+
+	case ColladaAnimation::AT_Transparence:
+	{
+		node_source = new TiXmlElement("source");
+		node_anim->LinkEndChild(node_source);
+		node_source->SetAttribute("id", animName + "_values");
+
+		TiXmlElement* node_floats = new TiXmlElement("float_array");
+		node_source->LinkEndChild(node_floats);
+		node_floats->SetAttribute("id", animName + "_values_floats");
+		node_floats->SetAttribute("count", nbKeyFrames * 4);
+		str = "";
+		for (size_t i = 0; i < nbKeyFrames; i++)
+		{
+			ColladaKeyframe &kf = animation.listKeyFrames.at(i);
+
+			str += ((i == 0) ? "" : " ") +string("0.0 0.0 0.0 ")+ EMO_BaseFile::FloatToString(kf.x);
+		}
+		node_floats->LinkEndChild(new TiXmlText(str));
+
+
+		TiXmlElement* node_technique_common = new TiXmlElement("technique_common");
+		node_source->LinkEndChild(node_technique_common);
+
+		TiXmlElement* node_accessor = new TiXmlElement("accessor");
+		node_technique_common->LinkEndChild(node_accessor);
+		node_accessor->SetAttribute("count", nbKeyFrames);
+		node_accessor->SetAttribute("source", "#" + animName + "_values_floats");
+		node_accessor->SetAttribute("stride", "4");
+
+		TiXmlElement* node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "R");
+		node_param->SetAttribute("type", "float");
+
+		node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "G");
+		node_param->SetAttribute("type", "float");
+
+		node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "B");
+		node_param->SetAttribute("type", "float");
+
+		node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("name", "A");
+		node_param->SetAttribute("type", "float");
+	}
+	break;
+
+
+	case ColladaAnimation::AT_Transparency:
+	{
+		node_source = new TiXmlElement("source");
+		node_anim->LinkEndChild(node_source);
+		node_source->SetAttribute("id", animName + "_values");
+
+		TiXmlElement* node_floats = new TiXmlElement("float_array");
+		node_source->LinkEndChild(node_floats);
+		node_floats->SetAttribute("id", animName + "_values_floats");
+		node_floats->SetAttribute("count", nbKeyFrames);
+		str = "";
+		for (size_t i = 0; i < nbKeyFrames; i++)
+			str += ((i == 0) ? "" : " ") + EMO_BaseFile::FloatToString(animation.listKeyFrames.at(i).x);
+		node_floats->LinkEndChild(new TiXmlText(str));
+
+
+		TiXmlElement* node_technique_common = new TiXmlElement("technique_common");
+		node_source->LinkEndChild(node_technique_common);
+
+		TiXmlElement* node_accessor = new TiXmlElement("accessor");
+		node_technique_common->LinkEndChild(node_accessor);
+		node_accessor->SetAttribute("count", nbKeyFrames);
+		node_accessor->SetAttribute("source", "#" + animName + "_values_floats");
+		node_accessor->SetAttribute("stride", 1);
+
+		TiXmlElement* node_param = new TiXmlElement("param");
+		node_accessor->LinkEndChild(node_param);
+		node_param->SetAttribute("type", "float");
+	}
+	break;
+
+
+
 
 	}
 
