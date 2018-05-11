@@ -1186,7 +1186,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						section3->nbElementV44 = val16(section3->nbElementV44);
 						section3->nbElementV52 = val16(section3->nbElementV52);
 						section3->offset_V90 = val32(section3->offset_V90);
-						section3->offset_unk40 = val32(section3->offset_unk40);
+						section3->offset_AnotherMalt = val32(section3->offset_AnotherMalt);
 						section3->offset_unk44 = val32(section3->offset_unk44);
 						section3->offset_unk48 = val32(section3->offset_unk48);
 						section3->offset_unk52 = val32(section3->offset_unk52);
@@ -1214,7 +1214,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						node = new TiXmlElement("nbElementV90"); node->SetAttribute("u16", UnsignedToString(section3->nbElementV90, false)); node_section3->LinkEndChild(node);
 						node = new TiXmlElement("nbElementV44"); node->SetAttribute("u16", UnsignedToString(section3->nbElementV44, false)); node_section3->LinkEndChild(node);
 						node = new TiXmlElement("nbElementV52"); node->SetAttribute("u16", UnsignedToString(section3->nbElementV52, false)); node_section3->LinkEndChild(node);
-						node = new TiXmlElement("offset_unk40"); node->SetAttribute("u32", UnsignedToString(val32(section3->offset_unk40), true)); node_section3->LinkEndChild(node);
+						node = new TiXmlElement("offset_AnotherMalt"); node->SetAttribute("u32", UnsignedToString(section3->offset_AnotherMalt + hdr->offset_Section2, true)); node_section3->LinkEndChild(node);
 						node = new TiXmlElement("offset_unk44"); node->SetAttribute("u32", UnsignedToString(val32(section3->offset_unk44), true)); node_section3->LinkEndChild(node);
 						
 						
@@ -1233,6 +1233,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						std::vector<EMDVertex> listVertex_collision;
 						std::vector<EMDTriangles> listTriangles_collision;
 
+
+						string submeshName = maltNodeName + "_submesh_" + std::to_string(k);
 
 
 
@@ -1259,9 +1261,14 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 								nbVertexTmp = val32(listValues[m]);
 								numberTotal += nbVertexTmp;
 								numberTotal_b += nbVertexTmp;
-								if((nbVertexTmp > 32) && (section3->nbElementV52 != 0))
-									//numberTotal_b += 2 * (nbVertexTmp / 32);
-									numberTotal_b += 2 * (size_t)round(nbVertexTmp / 32.0);						//round it's a no-sense, but it's the case of Model 177: 364 vertex, and only one group with 342. adding +2 each 32, give 362. 342 / 32 = 10.6875. and it's can't be 16 instead 32, because lots of group under 32, and up to 16 is not concerned. or may be, 16  begin after first 32. ... but strange. Todo just add 2 for case in the last.
+								if ((nbVertexTmp > 32) && (section3->nbElementV52 != 0))
+									numberTotal_b += 2 * (nbVertexTmp / 32);
+
+								if ((section3->nbElementV52 != 0)&&(m + 1 == section3->nbElementV90)&&(numberTotal_b!= section3->nbElementV52))					//if it's the last, and there isn't the count
+								{
+									printf("Debug V90, only have %i on %i, miss %i. on %s\n", numberTotal_b, section3->nbElementV52, section3->nbElementV52 - numberTotal_b, submeshName.c_str());
+									numberTotal_b += (size_t)abs((int)section3->nbElementV52 - (int)numberTotal_b);						//stage model 1 need only 2, may be it's the same for others.
+								}
 
 								node = new TiXmlElement("Group"); 
 								node->SetAttribute("index", m);
@@ -1275,7 +1282,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 							if( ((section3->nbElementV52!=0) && (numberTotal_b != section3->nbElementV52)) || ((section3->nbElementV52 == 0) && (section3->nbElementV44 != 0) && (numberTotal_b != section3->nbElementV44)) )
 							{
-								printf((string("Error of hyp (in case section3->offset_V90!=0, typeMode %i): the ")+ ((section3->nbElementV52!=0) ? "section3->nbElementV52" : "section3->nbElementV44") +" != sum of all group (%i != %i).\n").c_str(), section3->typeMode, (section3->nbElementV52!=0) ? section3->nbElementV52 : section3->nbElementV44, numberTotal_b);
+								printf((string("Error of hyp (in case section3->offset_V90!=0, typeMode %i): the ")+ ((section3->nbElementV52!=0) ? "section3->nbElementV52" : "section3->nbElementV44") +" != sum of all group (%i != %i). on %s\n").c_str(), section3->typeMode, (section3->nbElementV52!=0) ? section3->nbElementV52 : section3->nbElementV44, numberTotal_b, submeshName.c_str());
 								notifyError();
 							}
 						}
@@ -1283,7 +1290,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 
 
-						string submeshName = maltNodeName + "_submesh_" + std::to_string(k);
+						
 
 
 						
@@ -1360,14 +1367,14 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 							{
 								if ((section3->nbElementV52 / nbGroup) * nbGroup != section3->nbElementV52)
 								{
-									printf("Warning of hyp (in case section3->offset_V90==0): the section3->nbElementV52 / nbGroup (%i/%i) is not a integer. using nbGroup = 1\n", section3->nbElementV52, nbGroup);
+									printf("Warning of hyp (in case section3->offset_V90==0): the section3->nbElementV52 / nbGroup (%i/%i) is not a integer. using nbGroup = 1. on %s\n", section3->nbElementV52, nbGroup, submeshName.c_str());
 									notifyWarning();
 									nbGroup = 1;
 								}
 
 								if ((section3->typeMode != 5) && ((section3->nbElementV52 / nbGroup) % section3->typeMode != 0))
 								{
-									printf("Warning of hyp (in case section3->offset_V90==0, typeMode %i): the section3->nbElementV52 / nbGroup (%i / %i = %i) is not a modulo of %i. using nbGroup = 1\n", section3->typeMode, section3->nbElementV52, nbGroup, section3->nbElementV52 / nbGroup, section3->typeMode);
+									printf("Warning of hyp (in case section3->offset_V90==0, typeMode %i): the section3->nbElementV52 / nbGroup (%i / %i = %i) is not a modulo of %i. using nbGroup = 1. on %s\n", section3->typeMode, section3->nbElementV52, nbGroup, section3->nbElementV52 / nbGroup, section3->typeMode, submeshName.c_str());
 									notifyWarning();
 									nbGroup = 1;
 								}
@@ -1381,7 +1388,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 								if ((section3->typeMode != 5) && ((nbVertex) % section3->typeMode != 0))
 								{
-									printf((string("Warning of hyp (in case  section3->offset_V90") + ((listNbElementsByGroup) ? "!=" : "==") + "0, typeMode %i): the nbVertex = %i is not a modulo of %i. \n").c_str(), section3->typeMode, nbVertex, section3->typeMode);
+									printf((string("Warning of hyp (in case  section3->offset_V90") + ((listNbElementsByGroup) ? "!=" : "==") + "0, typeMode %i): the nbVertex = %i is not a modulo of %i. on %s\n").c_str(), section3->typeMode, nbVertex, section3->typeMode, submeshName.c_str());
 									notifyWarning();
 								}
 
@@ -1416,8 +1423,10 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 
 									if(nbVertex > 32)					//I notify some artefacts on stage meshes, and also sometime, the sum of nbvertex into V90 list is not equal with nbSection52.
-										//nbVertex += 2 * (nbVertex / 32);	//apparently it's about passing each 32 vertex. 
-										nbVertex += 2 * (size_t)round(nbVertex / 32.0);	//apparently it's about passing each 32 vertex. //round it's a no-sense, but it's the case of Model 177: 364 vertex, and only one group with 342. adding +2 each 32, give 362. 342 / 32 = 10.6875. and it's can't be 16 instead 32, because lots of group under 32, and up to 16 is not concerned. or may be, 16  begin after first 32. ... but strange.
+										nbVertex += 2 * (nbVertex / 32);	//apparently it's about passing each 32 vertex. 
+									if ((m + 1 == nbGroup) && (incVertex + nbVertex != section3->nbElementV52))					//if it's the last, and there isn't the count
+										nbVertex += section3->nbElementV52 - (incVertex + nbVertex);						// all model is usually 2 vertex, except model 195 witch have 4
+
 
 									for (size_t n = 0; n + 2 < nbVertex; n++)
 									{
@@ -1436,7 +1445,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 								if (emdTriangle.faces.size() == 0)
 								{
-									printf("Error number of face is 0. skipped\n");
+									printf("Error number of face is 0. skipped. on %s\n", submeshName.c_str());
 									notifyError();
 								}else {
 									listTriangles.push_back(emdTriangle);
@@ -1471,13 +1480,13 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 							{
 								if ((section3->nbElementV44 / nbGroup) * nbGroup != section3->nbElementV44)
 								{
-									printf("Error of hyp (in case Sect44, section3->offset_V90==0): the section3->nbElementV44 / nbGroup (%i/%i) is not a integer. \n", section3->nbElementV44, nbGroup);
+									printf("Error of hyp (in case Sect44, section3->offset_V90==0): the section3->nbElementV44 / nbGroup (%i/%i) is not a integer. on collision %s\n", section3->nbElementV44, nbGroup, submeshName.c_str());
 									notifyError();
 								}
 
 								if ((section3->typeMode != 5) && ((section3->nbElementV44 / nbGroup) % section3->typeMode != 0))
 								{
-									printf("Warning of hyp (in case Sect44,section3->offset_V90==0, typeMode %i): the section3->nbElementV44 / nbGroup (%i / %i = %i) is not a modulo of %i. using nbGroup=1.\n", section3->typeMode, section3->nbElementV44, nbGroup, section3->nbElementV44 / nbGroup, section3->typeMode);
+									printf("Warning of hyp (in case Sect44,section3->offset_V90==0, typeMode %i): the section3->nbElementV44 / nbGroup (%i / %i = %i) is not a modulo of %i. using nbGroup=1. on collision %s\n", section3->typeMode, section3->nbElementV44, nbGroup, section3->nbElementV44 / nbGroup, section3->typeMode, submeshName.c_str());
 									notifyWarning();
 									nbGroup = 1;
 								}
@@ -1533,17 +1542,23 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 									for (size_t n = 0; n + 3 < nbVertex; n += 4)					//test case diagonale come from 0 to 2 (1 and 3 are neighbour of 0) => diagonal is good.
 									{
 										//triangle A
-										emdTriangle.faces.push_back(incVertex + n);
 										emdTriangle.faces.push_back(incVertex + n + 1);
 										emdTriangle.faces.push_back(incVertex + n + 2);
+										emdTriangle.faces.push_back(incVertex + n + 3);
 
 										//triangle B
-										emdTriangle.faces.push_back(incVertex + n);
-										emdTriangle.faces.push_back(incVertex + n + 2);
 										emdTriangle.faces.push_back(incVertex + n + 3);
+										emdTriangle.faces.push_back(incVertex + n + 0);
+										emdTriangle.faces.push_back(incVertex + n + 1);
 									}
 
 								}else {									//case 5 : triangle strip  https://en.wikipedia.org/wiki/Triangle_strip
+
+
+									if (nbVertex > 32)					//I notify some artefacts on stage meshes, and also sometime, the sum of nbvertex into V90 list is not equal with nbSection52.
+										nbVertex += 2 * (nbVertex / 32);	//apparently it's about passing each 32 vertex. 
+									if ((m + 1 == nbGroup) && (incVertex + nbVertex != section3->nbElementV44))					//if it's the last, and there isn't the count
+										nbVertex += section3->nbElementV44 - (incVertex + nbVertex);						// all model is usually 2 vertex, except model 195 witch have 4
 
 
 									for (size_t n = 0; n + 2 < nbVertex; n++)
@@ -1564,7 +1579,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 								if (emdTriangle.faces.size() == 0)
 								{
-									printf("Error number of face is 0. skipped\n");
+									printf("Error number of face is 0. skipped on collision %s\n", submeshName.c_str());
 									notifyError();
 								}else {
 									listTriangles_collision.push_back(emdTriangle);
@@ -1609,29 +1624,6 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 							node_section48->SetAttribute("debugNbElements", incSection48);
 						}
-
-
-						if (section3->offset_unk40)
-						{
-							size_t startoffset_section40 = section3->offset_unk40 + hdr->offset_Section2;
-							offset = startoffset_section40;
-
-							SWR_MODEL_Section40* section40 = (SWR_MODEL_Section40*)GetOffsetPtr(buf, offset, true);
-							offset += sizeof(SWR_MODEL_Section40);
-
-							TiXmlElement* node_section40 = new TiXmlElement("Section40");
-							if (!XMLTEST_SoKeepSmaller)
-								node_section3->LinkEndChild(node_section40);
-							else
-								listToCleanBecauseOfDebug.push_back(node_section40);
-
-							node = new TiXmlElement("unk0"); node->SetAttribute("u32", UnsignedToString(val32(section40->unk0), true)); node_section40->LinkEndChild(node);
-							node = new TiXmlElement("unk1"); node->SetAttribute("u16", UnsignedToString(val16(section40->unk1), true)); node_section40->LinkEndChild(node);
-							node = new TiXmlElement("unk2"); node->SetAttribute("u16", UnsignedToString(val16(section40->unk2), true)); node_section40->LinkEndChild(node);
-							node = new TiXmlElement("unk3"); node->SetAttribute("u32", UnsignedToString(val32(section40->unk3), true)); node_section40->LinkEndChild(node);
-						}
-
-
 
 
 
@@ -1693,12 +1685,14 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 								node = new TiXmlElement("textureIndex"); node->SetAttribute("u24", textureIndex_str); node_section5->LinkEndChild(node);
 								node = new TiXmlElement("unk60"); node->SetAttribute("u32", UnsignedToString(val32(section5->unk60), true)); node_section5->LinkEndChild(node);
 
-								
+								/*
+								//after look deapeer, my conlcusion is it's come from lazy copy paste, when the visual object is exactly same as collision object.
 								if(section3->nbElementV52==0)
 								{
-									printf("Warning/Error: there is a Section5 with a effective textureIndex, but there is no Visual Vertex (Section52). strange ...\n");
+									printf("Warning/Error: there is a Section5 with a effective textureIndex (%i), but there is no Visual Vertex (Section52). on %s. strange ...\n", textureIndex, submeshName.c_str());
 									notifyError();
 								}
+								*/
 								
 
 								
@@ -1746,7 +1740,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 								materialName = "Mat_" + textureIndex_str;
 								collada->addTextureMaterial(materialName, "texture_" + textureIndex_str + ".png", wrap_u, wrap_v);
-								collada_collision->addTextureMaterial(materialName, "texture_" + textureIndex_str + ".png", wrap_u, wrap_v);
+								//collada_collision->addTextureMaterial(materialName, "texture_" + textureIndex_str + ".png", wrap_u, wrap_v);		//no texture for collision, because there is no UV.
 
 								listAltN_offset.push_back(startoffset_section4);								//to do the link with animations of Section5 (case2)
 								listAltN_BonesName.push_back(materialName);
@@ -1927,7 +1921,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 								((section3->offset_unk52) ? "v52_" : "") +
 								((section3->nbElementV52) ? "nb52_" : "") +
 								((section3->offset_unk48) ? "v48_" : "") +
-								((section3->offset_unk40) ? "v40_" : "") +
+								((section3->offset_AnotherMalt) ? "otherMalt_" : "") +
 								(((!section3->offset_unk44) && (((section3->typeMode == 3) || (section3->typeMode == 4)) && ((section3->nbElementV52 % section3->typeMode) == 0))) ? "Nb52Mod_" : "")
 							);
 
@@ -1987,7 +1981,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						section3->nbElementV44 = val16(section3->nbElementV44);
 						section3->nbElementV52 = val16(section3->nbElementV52);
 						section3->offset_V90 = val32(section3->offset_V90);
-						section3->offset_unk40 = val32(section3->offset_unk40);
+						section3->offset_AnotherMalt = val32(section3->offset_AnotherMalt);
 						section3->offset_unk44 = val32(section3->offset_unk44);
 						section3->offset_unk48 = val32(section3->offset_unk48);
 						section3->offset_unk52 = val32(section3->offset_unk52);
@@ -3283,7 +3277,7 @@ void Swr_Model::write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_
 							section3->nbElementV44 = val16(section3->nbElementV44);
 							section3->nbElementV52 = val16(section3->nbElementV52);
 							section3->offset_V90 = val32(section3->offset_V90);
-							section3->offset_unk40 = val32(section3->offset_unk40);
+							section3->offset_AnotherMalt = val32(section3->offset_AnotherMalt);
 							section3->offset_unk44 = val32(section3->offset_unk44);
 							section3->offset_unk48 = val32(section3->offset_unk48);
 							section3->offset_unk52 = val32(section3->offset_unk52);
@@ -3303,7 +3297,7 @@ void Swr_Model::write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_
 							isTextureArray.at(offset) = false;
 							write_Coloration_Tag("offset_V90", "uint32_t", " => " + UnsignedToString(section3->offset_V90 + hdr->offset_Section2, true), offset, sizeof(uint32_t), "SWR_MODEL_Section3", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint32_t);
 							isTextureArray.at(offset) = false;
-							write_Coloration_Tag("offset_unk40", "uint32_t", " => " + UnsignedToString(section3->offset_unk40 + hdr->offset_Section2, true), offset, sizeof(uint32_t), "SWR_MODEL_Section3", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint32_t);
+							write_Coloration_Tag("offset_AnotherMalt", "uint32_t", " => " + UnsignedToString(section3->offset_AnotherMalt + hdr->offset_Section2, true), offset, sizeof(uint32_t), "SWR_MODEL_Section3", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint32_t);
 							isTextureArray.at(offset) = false;
 							write_Coloration_Tag("offset_unk44", "uint32_t", " => " + UnsignedToString(section3->offset_unk44 + hdr->offset_Section2, true), offset, sizeof(uint32_t), "SWR_MODEL_Section3", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint32_t);
 							isTextureArray.at(offset) = false;
@@ -3383,29 +3377,6 @@ void Swr_Model::write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_
 
 
 
-
-
-
-
-
-
-							if ((section3->offset_unk40) && (!checkDuplication(section3->offset_unk40 + hdr->offset_Section2, listToAvoidDuplication)))
-							{
-								listToAvoidDuplication.push_back(section3->offset_unk40 + hdr->offset_Section2);
-
-								incSection++;
-								incParam = 0;
-
-								size_t startoffset_section40 = section3->offset_unk40 + hdr->offset_Section2;
-								offset = startoffset_section40;
-
-								SWR_MODEL_Section40* section40 = (SWR_MODEL_Section40*)GetOffsetPtr(buf, offset, true);
-
-								write_Coloration_Tag("unk0", "uint32_t", "Todo analyze", offset, sizeof(uint32_t), "SWR_MODEL_Section40", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint32_t);
-								write_Coloration_Tag("unk1", "uint16_t", "Todo analyze", offset, sizeof(uint16_t), "SWR_MODEL_Section40", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint16_t);
-								write_Coloration_Tag("unk2", "uint16_t", "Todo analyze", offset, sizeof(uint16_t), "SWR_MODEL_Section40", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint16_t);
-								write_Coloration_Tag("unk3", "uint32_t", "Todo analyze", offset, sizeof(uint32_t), "SWR_MODEL_Section40", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint32_t);
-							}
 
 
 

@@ -202,7 +202,7 @@ struct SWR_MODEL_Section3		// struct_V16. after SWR_AltN_0x3064
 	uint16_t nbElementV90;			// 0x20	nbElement
 	uint16_t typeMode;			// 0x22	Some mode, {3,4,5} are typical values : mode 3 = 3*unk32;			mode 4 = 4*unk32;		mode 5 = Count for V90
 	uint32_t offset_V90;		// 0x24	Pointer to uint32_t[], for mode 5, summed up is the count of unk40 (stripsize?)
-	uint32_t offset_unk40;		// 0x28	Pointer to uint16_t[] (indices?)
+	uint32_t offset_AnotherMalt;// 0x28	
 	uint32_t offset_unk44;		// 0x2C Pointer to uint16_t[]
 	uint32_t offset_unk48;
 	uint32_t offset_unk52;
@@ -426,20 +426,6 @@ struct SWR_MODEL_Section8		// struct_V47
 	uint32_t offset_next_section8; // 28
 } PACKED;
 static_assert(sizeof(SWR_MODEL_Section8) == 0x2C, "Incorrect structure size.");
-
-
-
-
-
-struct SWR_MODEL_Section40
-{
-	uint32_t unk0;				// 0
-	uint16_t unk1;				// 4
-	uint16_t unk2;				// 6
-	uint32_t unk3;				// 8
-} PACKED;
-static_assert(sizeof(SWR_MODEL_Section40) == 0xC, "Incorrect structure size.");
-
 
 
 
