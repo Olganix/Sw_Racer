@@ -137,9 +137,9 @@ namespace Common
 		Quaternion operator+ (const Quaternion& rkQ) const { return Quaternion(w + rkQ.w, x + rkQ.x, y + rkQ.y, z + rkQ.z); }
 		Quaternion operator- (const Quaternion& rkQ) const { return Quaternion(w - rkQ.w, x - rkQ.x, y - rkQ.y, z - rkQ.z); }
 		inline Quaternion& operator= (const Quaternion& rkQ) { w = rkQ.w; x = rkQ.x; y = rkQ.y; z = rkQ.z; return *this; }
-		double Quaternion::Norm() const {return w*w + x*x + y*y + z*z;}
-		double Quaternion::Dot(const Quaternion& rkQ) const{ return w*rkQ.w + x*rkQ.x + y*rkQ.y + z*rkQ.z; }
-		double Quaternion::normalise(void) { double len = Norm(); double factor = 1.0f / sqrt(len); *this = *this * factor; return len; }
+		double Norm() const {return w*w + x*x + y*y + z*z;}
+		double Dot(const Quaternion& rkQ) const{ return w*rkQ.w + x*rkQ.x + y*rkQ.y + z*rkQ.z; }
+		double normalise(void) { double len = Norm(); double factor = 1.0f / sqrt(len); *this = *this * factor; return len; }
 	};
 	Vector3 crossProduct(const Vector3& vec, const Vector3& rkVector);
 	Quaternion quatMulQuat(const Quaternion &quat, const Quaternion &rkQ);		//from Ogre Quaternion Quaternion::operator* (const Quaternion& rkQ) const
