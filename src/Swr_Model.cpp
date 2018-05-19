@@ -1881,7 +1881,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 							node = new TiXmlElement("unk56"); node->SetAttribute("u32", UnsignedToString(val32(section7->unk56), true)); node_section7->LinkEndChild(node);
 
 
-							materialName_collision = "Mat_" + getNameForSurfacePropertiesFlags(val32(section7->surfacePropertiesFlags));
+							materialName_collision = "Collision_" + getNameForSurfacePropertiesFlags(val32(section7->surfacePropertiesFlags));
 							collada_collision->addColorMaterial(materialName_collision, getStringColorForSurfacePropertiesFlags(val32(section7->surfacePropertiesFlags)));
 
 
