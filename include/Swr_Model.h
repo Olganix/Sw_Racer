@@ -391,7 +391,7 @@ struct SWR_MODEL_Section7		// struct_V46
 	float unk36;				// 24
 	
 	uint32_t unk40;				// 28
-	uint32_t unk44;				// 2c
+	uint32_t surfacePropertiesFlags;	// 2c
 	uint16_t unk48;				// 30
 	uint16_t unk50;				// 32
 	uint32_t unk52;				// 34
@@ -401,6 +401,46 @@ struct SWR_MODEL_Section7		// struct_V46
 static_assert(sizeof(SWR_MODEL_Section7) == 0x40, "Incorrect structure size.");
 
 
+
+
+/*
+///////// surfacePropertiesFlags from JayFoxRox:
+
+0x1	ZOn	Turns on the vertical control (anti-gravity tubes)
+0x2	ZOff	Turns off the vertical control (anti-gravity tubes)
+0x4	Fast	Add 200 forward speed
+0x8	Slow
+0x10	Swst
+0x20	Slip	Used on ice
+0x40	Dust
+0x80	Snow
+0x100	Wet
+0x200	Ruff
+0x400	Swmp
+0x800	NSnw	Probably "No Snow". Used in tunnels to avoid snow from appearing
+0x1000	Mirr	Enables rendering of the reflection below the track
+0x2000	Lava
+0x4000	Fall	Lets the podracer explode on collision
+0x8000	Soft
+0x10000	NRSp	Used in the crane on Ord Ibana. Maybe something like "Not reachable, special"?
+0x20000	Flat
+0x40000
+0x80000
+0x100000
+0x200000
+0x400000
+0x800000
+0x1000000
+0x2000000
+0x4000000
+0x8000000
+0x10000000
+0x20000000	Side	Used to bounce the podracer quickly towards the center again?
+0x40000000
+0x80000000
+
+
+*/
 
 
 struct SWR_MODEL_Section7_b
@@ -539,6 +579,11 @@ public:
 private:
 	std::vector<std::vector<std::vector<string>>> listTagColors;	// by Section, param, and font/background.
 	
+	//Color Debug
+	std::vector<size_t> listSurfacePropertieFlags;
+	std::vector<string> listSurfacePropertieFlags_Colors;
+	size_t currentColorIndex;
+	std::vector<string> listSourceColors;
 
 public:
 	Swr_Model();
@@ -566,6 +611,9 @@ public:
 private:
 	bool checkDuplication(size_t offset, std::vector<size_t> &listToAvoidDuplication);
 	bool checkDuplication_Malt_recursion(size_t offset, std::vector<size_t> &listToAvoidDuplication, const uint8_t *buf, size_t size, size_t offset_Section2);
+
+	string getNameForSurfacePropertiesFlags(size_t flags);
+	string getStringColorForSurfacePropertiesFlags(size_t flags);
 };
 
 

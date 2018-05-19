@@ -216,6 +216,40 @@ Swr_Model::Swr_Model()
 	listTagColors.back().push_back(std::vector<string>());
 	listTagColors.back().back().push_back("#777777");			//bg
 	listTagColors.back().back().push_back("#000000");			//f
+
+
+
+
+	currentColorIndex = 0;
+	listSourceColors.push_back("0 0 0 1");
+	listSourceColors.push_back("1 0 0 1");
+	listSourceColors.push_back("0 1 0 1");
+	listSourceColors.push_back("0 0 1 1");
+	listSourceColors.push_back("1 1 0 1");
+	listSourceColors.push_back("1 0 1 1");
+	listSourceColors.push_back("0 1 1 1");
+	listSourceColors.push_back("1 1 1 1");
+	listSourceColors.push_back("0.5 0 0 1");
+	listSourceColors.push_back("0 0.5 0 1");
+	listSourceColors.push_back("0 0 0.5 1");
+	listSourceColors.push_back("0.5 0.5 0 1");
+	listSourceColors.push_back("0.5 0 0.5 1");
+	listSourceColors.push_back("0 0.5 0.5 1");
+	listSourceColors.push_back("0.5 0.5 0.5 1");
+	listSourceColors.push_back("0.7 0 0 1");
+	listSourceColors.push_back("0 0.7 0 1");
+	listSourceColors.push_back("0 0 0.7 1");
+	listSourceColors.push_back("0.7 0.7 0 1");
+	listSourceColors.push_back("0.7 0 0.7 1");
+	listSourceColors.push_back("0 0.7 0.7 1");
+	listSourceColors.push_back("0.7 0.7 0.7 1");
+	listSourceColors.push_back("0.3 0 0 1");
+	listSourceColors.push_back("0 0.3 0 1");
+	listSourceColors.push_back("0 0 0.3 1");
+	listSourceColors.push_back("0.3 0.3 0 1");
+	listSourceColors.push_back("0.3 0 0.3 1");
+	listSourceColors.push_back("0 0.3 0.3 1");
+	listSourceColors.push_back("0.3 0.3 0.3 1");
 }
 /*-------------------------------------------------------------------------------\
 |                             Reset					                             |
@@ -1228,6 +1262,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 
 						string materialName = "Default";
+						string materialName_collision = "Default";
 						std::vector<EMDVertex> listVertex;
 						std::vector<EMDTriangles> listTriangles;
 						std::vector<EMDVertex> listVertex_collision;
@@ -1235,9 +1270,13 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 
 						string submeshName = maltNodeName + "_submesh_" + std::to_string(k);
+						node_section3->SetAttribute("name", submeshName);
 
 
-
+						if (submeshName == "model_86_0__21_submesh_0")
+						{
+							//section3->typeMode = 4;							//force for test.
+						}
 
 						
 						if (section3->offset_V90)									//it's a list of numberElements for next parts.
@@ -1398,12 +1437,16 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 								if (section3->typeMode == 3)			//simple triangles 
 								{
+									
 									for (size_t n = 0; n + 2 < nbVertex; n += 3)
 									{
 										emdTriangle.faces.push_back(incVertex + n);
 										emdTriangle.faces.push_back(incVertex + n + 1);
 										emdTriangle.faces.push_back(incVertex + n + 2);
 									}
+
+									
+
 								}else if (section3->typeMode == 4) {    //simple quads
 
 									for (size_t n = 0; n + 3 < nbVertex; n += 4)					//test case diagonale come from 0 to 2 (1 and 3 are neighbour of 0) => diagonal is good.
@@ -1789,6 +1832,13 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						size_t incSection8 = 0;
 						if (section3->offset_section7)
 						{
+							if ((section3->nbElementV52 != 0)&& (section3->nbElementV44 == 0))
+							{
+								printf("Warning/Error: there is a Section7, but there is Visual Vertex (Section52) and no Collision (Section44). on %s. strange ...\n", submeshName.c_str());
+								notifyError();
+							}
+
+							
 							size_t startoffset_section7 = section3->offset_section7 + hdr->offset_Section2;
 							offset = startoffset_section7;
 
@@ -1824,11 +1874,15 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 							node = new TiXmlElement("unk32"); node->SetAttribute("float", FloatToString(val_float(section7->unk32))); node_section7->LinkEndChild(node);
 							node = new TiXmlElement("unk36"); node->SetAttribute("float", FloatToString(val_float(section7->unk36))); node_section7->LinkEndChild(node);
 							node = new TiXmlElement("unk40"); node->SetAttribute("u32", UnsignedToString(val32(section7->unk40), true)); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk44"); node->SetAttribute("u32", UnsignedToString(val32(section7->unk44), true)); node_section7->LinkEndChild(node);
+							node = new TiXmlElement("unk44"); node->SetAttribute("u32", UnsignedToString(val32(section7->surfacePropertiesFlags), true)); node_section7->LinkEndChild(node);
 							node = new TiXmlElement("unk48"); node->SetAttribute("u16", UnsignedToString(val16(section7->unk48), true)); node_section7->LinkEndChild(node);
 							node = new TiXmlElement("unk50"); node->SetAttribute("u16", UnsignedToString(val16(section7->unk50), true)); node_section7->LinkEndChild(node);
 							node = new TiXmlElement("unk52"); node->SetAttribute("u32", UnsignedToString(val32(section7->unk52), true)); node_section7->LinkEndChild(node);
 							node = new TiXmlElement("unk56"); node->SetAttribute("u32", UnsignedToString(val32(section7->unk56), true)); node_section7->LinkEndChild(node);
+
+
+							materialName_collision = "Mat_" + getNameForSurfacePropertiesFlags(val32(section7->surfacePropertiesFlags));
+							collada_collision->addColorMaterial(materialName_collision, getStringColorForSurfacePropertiesFlags(val32(section7->surfacePropertiesFlags)));
 
 
 							if ((val32(section7->unk52) & 0xFFFF) == 0x6C3C)			//apparently, it's work on all files.
@@ -1900,8 +1954,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 						if ((listVertex_collision.size()) && (listTriangles_collision.size()))
 						{
-							collada_collision->addGeometry(submeshName, listVertex_collision, listTriangles_collision, materialName);
-							collada_collision->makeInstanceGeometryOnNode(collada_collision_node, submeshName, materialName, materialName != "Default");
+							collada_collision->addGeometry(submeshName, listVertex_collision, listTriangles_collision, materialName_collision);
+							collada_collision->makeInstanceGeometryOnNode(collada_collision_node, submeshName, materialName_collision, false);
 						}
 
 						
@@ -4232,3 +4286,95 @@ bool Swr_Model::checkDuplication_Malt_recursion(size_t offset, std::vector<size_
 	return false;
 };
 
+/*-------------------------------------------------------------------------------\
+|                             getNameForSurfacePropertiesFlags                   |
+\-------------------------------------------------------------------------------*/
+string Swr_Model::getNameForSurfacePropertiesFlags(size_t flags)
+{
+	string str = "";
+
+	if (flags & 1)
+		str += "ZOn_";
+	if (flags & 2)
+		str += "ZOff_";
+	if (flags & 4)
+		str += "Fast_";
+	if (flags & 8)
+		str += "Slow_";
+	if (flags & 0x10)
+		str += "Swst_";
+	if (flags & 0x20)
+		str += "Slip_";
+	if (flags & 0x40)
+		str += "Dust_";
+	if (flags & 0x80)
+		str += "Snow_";
+	if (flags & 0x100)
+		str += "Wet_";
+	if (flags & 0x200)
+		str += "Ruff_";
+	if (flags & 0x400)
+		str += "Swmp_";
+	if (flags & 0x800)
+		str += "NSnw_";
+	if (flags & 0x1000)
+		str += "Mirr_";
+	if (flags & 0x2000)
+		str += "Lava_";
+	if (flags & 0x4000)
+		str += "Fall_";
+	if (flags & 0x8000)
+		str += "Soft_";
+	if (flags & 0x10000)
+		str += "NRSp_";
+	if (flags & 0x20000)
+		str += "Flat_";
+	if (flags & 0x40000)
+		str += "0x40000_";
+	if (flags & 0x100000)
+		str += "0x100000_";
+	if (flags & 0x200000)
+		str += "0x200000_";
+	if (flags & 0x400000)
+		str += "0x400000_";
+	if (flags & 0x800000)
+		str += "0x800000_";
+	if (flags & 0x1000000)
+		str += "0x1000000_";
+	if (flags & 0x2000000)
+		str += "0x2000000_";
+	if (flags & 0x4000000)
+		str += "0x4000000_";
+	if (flags & 0x8000000)
+		str += "0x8000000_";
+	if (flags & 0x10000000)
+		str += "0x10000000_";
+	if (flags & 0x20000000)
+		str += "Side_";
+	if (flags & 0x40000000)
+		str += "0x40000000_";
+	if (flags & 0x80000000)
+		str += "0x80000000_";
+
+	return str;
+}
+/*-------------------------------------------------------------------------------\
+|                             getStringColorForSurfacePropertiesFlags            |
+\-------------------------------------------------------------------------------*/
+string Swr_Model::getStringColorForSurfacePropertiesFlags(size_t flags)
+{
+	size_t nbFlags = listSurfacePropertieFlags.size();
+	for(size_t i = 0; i < nbFlags; i++)
+	{
+		if (listSurfacePropertieFlags.at(i) == flags)
+			return listSurfacePropertieFlags_Colors.at(i);
+	}
+
+	listSurfacePropertieFlags.push_back(flags);
+	listSurfacePropertieFlags_Colors.push_back(listSourceColors.at(currentColorIndex++));
+
+	if (currentColorIndex >= listSourceColors.size())
+		currentColorIndex = 0;
+
+	return listSurfacePropertieFlags_Colors.back();
+}
