@@ -932,17 +932,70 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 
 				SWR_Data* datas = (SWR_Data*)GetOffsetPtr(buf, offset, true);
 
-				TiXmlElement* node_data = new TiXmlElement("Datas");
+				TiXmlElement* node_data = new TiXmlElement("Data");
 				if(!XMLTEST_SoKeepSmaller)
 					node_model->LinkEndChild(node_data);
 				else
 					listToCleanBecauseOfDebug.push_back(node_data);
 
-				for (size_t j = 0; j < nbDatas; j++)
+        unsigned int lstr_index = 0;
+
+        // The data size is given in number of DWORDs
+        size_t data_offset = 0;
+				while(data_offset < nbDatas * 4)
 				{
-					TiXmlElement* node = new TiXmlElement("Data"); node->SetAttribute("unk0", UnsignedToString(datas[j].unk0, true)); node->SetAttribute("unk1", UnsignedToString(datas[j].unk1, true)); node->SetAttribute("unk2", UnsignedToString(datas[j].unk2, true)); node->SetAttribute("unk3", UnsignedToString(datas[j].unk3, true)); node_data->LinkEndChild(node);
-					offset += 4 * sizeof(uint8_t);
+
+  				uint32_t* data_words = (uint32_t*)GetOffsetPtr(buf, offset, true);
+
+          if(memcmp(hdr_section2->signature, SWR_MODEL_SIGNATURE_TRACK, 4) == 0) {
+
+            if (memcmp(datas, "LStr", 4) == 0) {
+
+              typedef struct {
+                uint32_t magic;
+                float x;
+                float y;
+                float z;
+              } LStrData;
+              LStrData* lstr_data = (LStrData*)data_words;
+
+              float x = val_float(lstr_data->x);
+              float y = val_float(lstr_data->y);
+              float z = val_float(lstr_data->z);
+
+					    TiXmlElement* node = new TiXmlElement("LStr");
+              node->SetAttribute("x", FloatToString(x));
+              node->SetAttribute("y", FloatToString(y));
+              node->SetAttribute("z", FloatToString(z));
+              node_data->LinkEndChild(node);
+
+              collada->createNode("LStr_" + std::to_string(lstr_index++), 0,
+                Vector3(x, y, z),
+                Vector3::zero, "", "", false, Vector3(10.0f, 10.0f, 10.0f));
+
+					    offset += sizeof(LStrData);
+              data_offset += sizeof(LStrData);
+            } else {
+              assert(false);
+            }
+
+          } else if(memcmp(hdr_section2->signature, SWR_MODEL_SIGNATURE_SCENE, 4) == 0) {
+
+            // Scen seems to have a collection of floats floats, without chunk
+
+				    TiXmlElement* node = new TiXmlElement("Unknown");
+            node->SetAttribute("u32", UnsignedToString(val32(*data_words), true));
+            node_data->LinkEndChild(node);
+
+				    offset += 4;
+            data_offset += 4;
+
+          } else {
+            assert(false);
+          }
 				}
+
+        assert(data_offset == nbDatas * 4);
 
 				//todo understand data is for what ? linked to another files ?
 
