@@ -938,6 +938,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 				else
 					listToCleanBecauseOfDebug.push_back(node_data);
 
+
 				unsigned int lstr_index = 0;
 
 				// The data size is given in number of DWORDs
@@ -952,7 +953,7 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						if (memcmp(datas, "LStr", 4) != 0) 
 							break;
 
-						LStrData* lstr_data = (LStrData*)data_words;
+						SWR_Data_LightStreak* lstr_data = (SWR_Data_LightStreak*)data_words;
 
 						float x = val_float(lstr_data->x);
 						float y = val_float(lstr_data->y);
@@ -969,8 +970,8 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						collada->addLight(lightName);
 						collada->createNode(lightName, 0, Vector3(x, y, z), Vector3::zero, "", "", false, Vector3(10.0f, 10.0f, 10.0f), lightName);
 
-						offset += sizeof(LStrData);
-						data_offset += sizeof(LStrData);
+						offset += sizeof(SWR_Data_LightStreak);
+						data_offset += sizeof(SWR_Data_LightStreak);
 						
 
 					} else if(memcmp(hdr_section2->signature, SWR_MODEL_SIGNATURE_SCENE, 4) == 0) {
@@ -1878,13 +1879,6 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 						size_t incSection8 = 0;
 						if (section3->offset_section7)
 						{
-							if ((section3->nbElementV52 != 0)&& (section3->nbElementV44 == 0))
-							{
-								printf("Warning/Error: there is a Section7, but there is Visual Vertex (Section52) and no Collision (Section44). on %s. strange ...\n", submeshName.c_str());
-								notifyError();
-							}
-
-							
 							size_t startoffset_section7 = section3->offset_section7 + hdr->offset_Section2;
 							offset = startoffset_section7;
 
@@ -1899,28 +1893,48 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 								listToCleanBecauseOfDebug.push_back(node_section7);
 
 							node = new TiXmlElement("unk0"); node->SetAttribute("u16", UnsignedToString(val16(section7->unk0), true)); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk2_0"); node->SetAttribute("u8", UnsignedToString(section7->unk2[0], true)); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk2_1"); node->SetAttribute("u8", UnsignedToString(section7->unk2[1], true)); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk2_2"); node->SetAttribute("u8", UnsignedToString(section7->unk2[2], true)); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk2_3"); node->SetAttribute("u8", UnsignedToString(section7->unk2[3], true)); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk6"); node->SetAttribute("u16", UnsignedToString(val16(section7->unk6), true)); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk8"); node->SetAttribute("u16", UnsignedToString(val16(section7->unk8), true)); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk10"); node->SetAttribute("u16", UnsignedToString(val16(section7->unk10), true)); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk12_0"); node->SetAttribute("u8", UnsignedToString(section7->unk12[0], true)); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk12_1"); node->SetAttribute("u8", UnsignedToString(section7->unk12[1], true)); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk12_2"); node->SetAttribute("u8", UnsignedToString(section7->unk12[2], true)); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk12_3"); node->SetAttribute("u8", UnsignedToString(section7->unk12[3], true)); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk12_4"); node->SetAttribute("u8", UnsignedToString(section7->unk12[4], true)); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk12_5"); node->SetAttribute("u8", UnsignedToString(section7->unk12[5], true)); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk12_6"); node->SetAttribute("u8", UnsignedToString(section7->unk12[6], true)); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk12_7"); node->SetAttribute("u8", UnsignedToString(section7->unk12[7], true)); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk20"); node->SetAttribute("float", FloatToString(val_float(section7->unk20))); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk24"); node->SetAttribute("float", FloatToString(val_float(section7->unk24))); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk28"); node->SetAttribute("float", FloatToString(val_float(section7->unk28))); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk32"); node->SetAttribute("float", FloatToString(val_float(section7->unk32))); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk36"); node->SetAttribute("float", FloatToString(val_float(section7->unk36))); node_section7->LinkEndChild(node);
+							node = new TiXmlElement("fog_flags"); node->SetAttribute("u8", UnsignedToString(section7->fog_flags, true)); node_section7->LinkEndChild(node);
+
+							node = new TiXmlElement("fog_color"); 
+							node->SetAttribute("r", UnsignedToString(section7->fog_r, false));
+							node->SetAttribute("g", UnsignedToString(section7->fog_g, false));
+							node->SetAttribute("b", UnsignedToString(section7->fog_b, false));
+							node_section7->LinkEndChild(node);
+
+							node = new TiXmlElement("fog_range");
+							node->SetAttribute("start", UnsignedToString(val16(section7->fog_start), true));
+							node->SetAttribute("end", UnsignedToString(val16(section7->fog_end), true));
+							node_section7->LinkEndChild(node);
+
+							node = new TiXmlElement("light_flags"); node->SetAttribute("u16", UnsignedToString(val16(section7->light_flags), true)); node_section7->LinkEndChild(node);
+
+							node = new TiXmlElement("ambient_color"); 
+							node->SetAttribute("r", UnsignedToString(section7->ambientColor_r, false));
+							node->SetAttribute("g", UnsignedToString(section7->ambientColor_g, false));
+							node->SetAttribute("b", UnsignedToString(section7->ambientColor_b, false));
+							node_section7->LinkEndChild(node);
+							
+							node = new TiXmlElement("light_color");
+							node->SetAttribute("r", UnsignedToString(section7->lightColor_r, false));
+							node->SetAttribute("g", UnsignedToString(section7->lightColor_g, false));
+							node->SetAttribute("b", UnsignedToString(section7->lightColor_b, false));
+							node_section7->LinkEndChild(node);
+
+							
+							node = new TiXmlElement("unk18"); node->SetAttribute("u8", UnsignedToString(section7->unk18, true)); node_section7->LinkEndChild(node);
+							node = new TiXmlElement("unk19"); node->SetAttribute("u8", UnsignedToString(section7->unk19, true)); node_section7->LinkEndChild(node);
+
+							node = new TiXmlElement("light_position"); 
+							node->SetAttribute("x", FloatToString(val_float(section7->light_x))); 
+							node->SetAttribute("y", FloatToString(val_float(section7->light_y)));
+							node->SetAttribute("z", FloatToString(val_float(section7->light_z)));
+							node_section7->LinkEndChild(node);
+							
+							node = new TiXmlElement("unk32_x"); node->SetAttribute("float", FloatToString(val_float(section7->unk32_x))); node_section7->LinkEndChild(node);
+							node = new TiXmlElement("unk36_y"); node->SetAttribute("float", FloatToString(val_float(section7->unk36_y))); node_section7->LinkEndChild(node);
+
 							node = new TiXmlElement("unk40"); node->SetAttribute("u32", UnsignedToString(val32(section7->unk40), true)); node_section7->LinkEndChild(node);
-							node = new TiXmlElement("unk44"); node->SetAttribute("u32", UnsignedToString(val32(section7->surfacePropertiesFlags), true)); node_section7->LinkEndChild(node);
+							node = new TiXmlElement("surfacePropertiesFlags"); node->SetAttribute("u32", UnsignedToString(val32(section7->surfacePropertiesFlags), true)); node_section7->LinkEndChild(node);
 							node = new TiXmlElement("unk48"); node->SetAttribute("u16", UnsignedToString(val16(section7->unk48), true)); node_section7->LinkEndChild(node);
 							node = new TiXmlElement("unk50"); node->SetAttribute("u16", UnsignedToString(val16(section7->unk50), true)); node_section7->LinkEndChild(node);
 							node = new TiXmlElement("unk52"); node->SetAttribute("u32", UnsignedToString(val32(section7->unk52), true)); node_section7->LinkEndChild(node);
@@ -3231,12 +3245,49 @@ void Swr_Model::write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_
 				
 				SWR_Data* datas = (SWR_Data*)GetOffsetPtr(buf, offset, true);
 				
-				for (size_t j = 0; j < nbDatas; j++)
+				size_t endoffset_Data = offset + nbDatas * sizeof(uint32_t);
+
+
+				if (memcmp(hdr_section2->signature, SWR_MODEL_SIGNATURE_TRACK, 4) == 0)
 				{
-					write_Coloration_Tag("unk0", "uint8_t", "", offset, sizeof(uint8_t), "SWR_Data", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint8_t);
-					write_Coloration_Tag("unk1", "uint8_t", "", offset, sizeof(uint8_t), "SWR_Data", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint8_t);
-					write_Coloration_Tag("unk2", "uint8_t", "", offset, sizeof(uint8_t), "SWR_Data", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint8_t);
-					write_Coloration_Tag("unk3", "uint8_t", "", offset, sizeof(uint8_t), "SWR_Data", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint8_t);
+					size_t nbLightStreaks = (nbDatas * sizeof(uint32_t)) / sizeof(SWR_Data_LightStreak);
+
+					for (size_t j = 0; j < nbLightStreaks; j++)
+					{
+						SWR_Data_LightStreak* lightStreak_datas = (SWR_Data_LightStreak*)GetOffsetPtr(buf, offset, true);
+
+						if (memcmp(lightStreak_datas->signature, SWR_MODEL_SIGNATURE_LIGHT_STREAK, 4) != 0)
+						{
+							printf("Track Datas have something different than %s. skipped.", SWR_MODEL_SIGNATURE_LIGHT_STREAK);
+							break;
+						}
+
+						write_Coloration_Tag("signature", "string", "", offset, 4 * sizeof(char), "SWR_Data_LightStreak", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged,j); offset += 4 * sizeof(char);
+						write_Coloration_Tag("x", "float", "", offset, sizeof(float), "SWR_Data_LightStreak", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(float);
+						write_Coloration_Tag("y", "float", "", offset, sizeof(float), "SWR_Data_LightStreak", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(float);
+						write_Coloration_Tag("z", "float", "", offset, sizeof(float), "SWR_Data_LightStreak", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(float);
+					}
+
+				}else if (memcmp(hdr_section2->signature, SWR_MODEL_SIGNATURE_SCENE, 4) == 0) {
+
+					// Scen seems to have a collection of floats floats, without chunk
+
+					size_t nbFloats = (nbDatas * sizeof(uint32_t)) / sizeof(float);
+
+					for (size_t j = 0; j < nbFloats; j++)
+					{
+						write_Coloration_Tag("unk", "float", "", offset, sizeof(float), "SWR_Data_SceneFloat", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(float);
+					}
+
+				}else {
+
+					for (size_t j = 0; j < nbDatas; j++)
+					{
+						write_Coloration_Tag("unk0", "uint8_t", "", offset, sizeof(uint8_t), "SWR_Data", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint8_t);
+						write_Coloration_Tag("unk1", "uint8_t", "", offset, sizeof(uint8_t), "SWR_Data", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint8_t);
+						write_Coloration_Tag("unk2", "uint8_t", "", offset, sizeof(uint8_t), "SWR_Data", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint8_t);
+						write_Coloration_Tag("unk3", "uint8_t", "", offset, sizeof(uint8_t), "SWR_Data", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint8_t);
+					}
 				}
 
 				//todo understand data is for what ? linked to another files ?
@@ -3626,28 +3677,28 @@ void Swr_Model::write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_
 								SWR_MODEL_Section7* section7 = (SWR_MODEL_Section7*)GetOffsetPtr(buf, offset, true);
 								
 								write_Coloration_Tag("unk0", "uint16_t", "0(most), 2, 4, 0x10, 0x12, 0x14, 0x20, 0x24. flags", offset, sizeof(uint16_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint16_t);
-								write_Coloration_Tag("unk2_0", "uint8_t", "0 (most), 1, 2, 3, 4, 5, 7, 0xb, 0xc", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
-								write_Coloration_Tag("unk2_1", "uint8_t", "", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
-								write_Coloration_Tag("unk2_2", "uint8_t", "", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
-								write_Coloration_Tag("unk2_3", "uint8_t", "", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
-								write_Coloration_Tag("unk6", "uint16_t", "0, 1, 3, 0x3d9, 0x3de, 0x3e1, 0x3e2, 0x3e3, 0x3e4 (most), 0x2838, 0x7200, 0x94b0, 0xd830", offset, sizeof(uint16_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint16_t);
-								write_Coloration_Tag("unk8", "uint16_t", "", offset, sizeof(uint16_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint16_t);
-								write_Coloration_Tag("unk10", "uint16_t", "0(most), 1, 3, 6, 7, 0xb, 0xf, 0x17. flags", offset, sizeof(uint16_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint16_t);
-								write_Coloration_Tag("unk12_0", "uint8_t", "0xff is the most", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
-								write_Coloration_Tag("unk12_1", "uint8_t", "0xff is the most", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
-								write_Coloration_Tag("unk12_2", "uint8_t", "0xff is the most", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
-								write_Coloration_Tag("unk12_3", "uint8_t", "0xff is the most", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
-								write_Coloration_Tag("unk12_4", "uint8_t", "0xff is the most", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
-								write_Coloration_Tag("unk12_5", "uint8_t", "0xff is the most", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
-								write_Coloration_Tag("unk12_6", "uint8_t", "0x3d is the most", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
-								write_Coloration_Tag("unk12_7", "uint8_t", "0 is the most", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
-								write_Coloration_Tag("unk20", "float", "-14000.0, -5580.0, -4800.0, -3147.0, -2953.0, -2629.0, -1482.0, -329.265991, 0.0 (most), 1.0, 1500.0, 4152.0, 8000.0, 8600.0, 11168.097656, 27813.0", offset, sizeof(float), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(float);
-								write_Coloration_Tag("unk24", "float", "-12101.0, -9000.0, -3998.197998, -3800.0, -3364.0, 0.0 (most), 1.0, 2.0, 3765.0, 4426.0, 7633.0, 8390.0, 9115.0, 9300.0, 14800.0, 42000.0", offset, sizeof(float), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(float);
-								write_Coloration_Tag("unk28", "float", "-4712.958008, -3000.0, -1.0 (most), 100.0, 453.0, 557.0, 560.0, 695.0, 891.0, 1273.0, 2800.0, 5934.678223, 6500.0, 21305.0, 30000.0", offset, sizeof(float), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(float);
-								write_Coloration_Tag("unk32", "float", "-1.0, 0.0 (most), 1.0", offset, sizeof(float), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(float);
-								write_Coloration_Tag("unk36", "float", "-1.0, 0.0, 1.0 (most)", offset, sizeof(float), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(float);
+								write_Coloration_Tag("fog_flags", "uint8_t", "0 (most), 1, 2, 3, 4, 5, 7, 0xb, 0xc", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
+								write_Coloration_Tag("fog_r", "uint8_t", "", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
+								write_Coloration_Tag("fog_g", "uint8_t", "", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
+								write_Coloration_Tag("fog_b", "uint8_t", "", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
+								write_Coloration_Tag("fog_start", "uint16_t", "0, 1, 3, 0x3d9, 0x3de, 0x3e1, 0x3e2, 0x3e3, 0x3e4 (most), 0x2838, 0x7200, 0x94b0, 0xd830", offset, sizeof(uint16_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint16_t);
+								write_Coloration_Tag("fog_end", "uint16_t", "", offset, sizeof(uint16_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint16_t);
+								write_Coloration_Tag("light_flags", "uint16_t", "0(most), 1, 3, 6, 7, 0xb, 0xf, 0x17. flags", offset, sizeof(uint16_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint16_t);
+								write_Coloration_Tag("ambientColor_r", "uint8_t", "0xff is the most", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
+								write_Coloration_Tag("ambientColor_g", "uint8_t", "0xff is the most", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
+								write_Coloration_Tag("ambientColor_b", "uint8_t", "0xff is the most", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
+								write_Coloration_Tag("lightColor_r", "uint8_t", "0xff is the most", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
+								write_Coloration_Tag("lightColor_g", "uint8_t", "0xff is the most", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
+								write_Coloration_Tag("lightColor_b", "uint8_t", "0xff is the most", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
+								write_Coloration_Tag("unk18", "uint8_t", "0x3d is the most", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
+								write_Coloration_Tag("unk19", "uint8_t", "0 is the most", offset, sizeof(uint8_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
+								write_Coloration_Tag("light_x", "float", "-14000.0, -5580.0, -4800.0, -3147.0, -2953.0, -2629.0, -1482.0, -329.265991, 0.0 (most), 1.0, 1500.0, 4152.0, 8000.0, 8600.0, 11168.097656, 27813.0", offset, sizeof(float), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(float);
+								write_Coloration_Tag("light_y", "float", "-12101.0, -9000.0, -3998.197998, -3800.0, -3364.0, 0.0 (most), 1.0, 2.0, 3765.0, 4426.0, 7633.0, 8390.0, 9115.0, 9300.0, 14800.0, 42000.0", offset, sizeof(float), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(float);
+								write_Coloration_Tag("light_z", "float", "-4712.958008, -3000.0, -1.0 (most), 100.0, 453.0, 557.0, 560.0, 695.0, 891.0, 1273.0, 2800.0, 5934.678223, 6500.0, 21305.0, 30000.0", offset, sizeof(float), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(float);
+								write_Coloration_Tag("unk32_x", "float", "-1.0, 0.0 (most), 1.0", offset, sizeof(float), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(float);
+								write_Coloration_Tag("unk36_y", "float", "-1.0, 0.0, 1.0 (most)", offset, sizeof(float), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(float);
 								write_Coloration_Tag("unk40", "uint32_t", "always 0", offset, sizeof(uint32_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint32_t);
-								write_Coloration_Tag("unk44", "uint32_t", "4 x uint8:      0(most), 2.     0(most),1,2.         0(most), 1, 2, 4, 5, 6, 8, 0x10, 0x11, 0x18, 0x20, 0x24, 0x40, 0x80, 0x83, 0x88.      0(most),1,2,4,5,8,0x20, 0x24 0x40, 0x42, 0x48, 0x88,  ", offset, sizeof(uint32_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint32_t);
+								write_Coloration_Tag("surfacePropertiesFlags", "uint32_t", "4 x uint8:      0(most), 2.     0(most),1,2.         0(most), 1, 2, 4, 5, 6, 8, 0x10, 0x11, 0x18, 0x20, 0x24, 0x40, 0x80, 0x83, 0x88.      0(most),1,2,4,5,8,0x20, 0x24 0x40, 0x42, 0x48, 0x88,  ", offset, sizeof(uint32_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint32_t);
 								write_Coloration_Tag("unk48", "uint16_t", "0x0 (most), 0x1, 0x100a", offset, sizeof(uint16_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint16_t);
 								write_Coloration_Tag("unk50", "uint16_t", "0x1, 0x2, 0x594c (most), 0xa86c, 0xf280", offset, sizeof(uint16_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint16_t);
 								write_Coloration_Tag("unk52", "uint32_t", "0 the most. look like color RGBA (with lot of alpha at 0)", offset, sizeof(uint32_t), "SWR_MODEL_Section7", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint32_t);

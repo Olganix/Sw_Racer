@@ -24,6 +24,7 @@
 #define SWR_MODEL_SIGNATURE_ANIM "Anim"
 #define SWR_MODEL_SIGNATURE_ALTN "AltN"
 #define SWR_MODEL_SIGNATURE_HEND "HEnd"
+#define SWR_MODEL_SIGNATURE_LIGHT_STREAK "LStr"
 
 
 struct SWR_MODELHeader
@@ -60,13 +61,15 @@ struct SWR_Data
 static_assert(sizeof(SWR_Data) == 0x4, "Incorrect structure size.");
 
 
-struct LStrData
+
+struct SWR_Data_LightStreak
 {
-	uint32_t magic;
-	float x;
-	float y;
-	float z;
+	char signature[4];			// 0
+	float x;					// 4
+	float y;					// 8
+	float z;					// A
 };
+static_assert(sizeof(SWR_Data_LightStreak) == 0x10, "Incorrect structure size.");
 
 ///////////////////////////////////////////
 
@@ -386,24 +389,45 @@ static_assert(sizeof(SWR_MODEL_Section6) == 0x34, "Incorrect structure size.");
 struct SWR_MODEL_Section7		// struct_V46
 {
 	uint16_t unk0;				// 0
-	uint8_t  unk2[4];			// 2
-	uint16_t unk6;				// 6
-	uint16_t unk8;				// 8
-	uint16_t unk10;				// A
-	uint8_t  unk12[8];			// C
 
-	float unk20;				// 14
-	float unk24;				// 18
-	float unk28;				// 1C
-	float unk32;				// 20
-	float unk36;				// 24
+	uint8_t  fog_flags;			// 2
+	uint8_t  fog_r;				// 3
+	uint8_t  fog_g;				// 4
+	uint8_t  fog_b;				// 5
+
+	uint16_t fog_start;			// 6
+	uint16_t fog_end;			// 8
+
+	uint16_t light_flags;		// A
+
+	uint8_t  ambientColor_r;	// C
+	uint8_t  ambientColor_g;	// D
+	uint8_t  ambientColor_b;	// E
+
+	uint8_t  lightColor_r;		// F
+	uint8_t  lightColor_g;		// 10
+	uint8_t  lightColor_b;		// 11
+
+	uint8_t unk18;				// 12
+	uint8_t unk19;				// 13
+
+	float light_x;				// 14
+	float light_y;				// 18
+	float light_z;				// 1C
+
+	float unk32_x;				// 20
+	float unk36_y;				// 24
 	
 	uint32_t unk40;				// 28
-	uint32_t surfacePropertiesFlags;	// 2c
+
+	uint32_t surfacePropertiesFlags; // 2c
+
 	uint16_t unk48;				// 30
 	uint16_t unk50;				// 32
+
 	uint32_t unk52;				// 34
 	uint32_t unk56;				// 38
+
 	uint32_t offset_section8;	// 3C startoffset list of struct_V47
 } PACKED;
 static_assert(sizeof(SWR_MODEL_Section7) == 0x40, "Incorrect structure size.");
