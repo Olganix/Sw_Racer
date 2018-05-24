@@ -589,6 +589,8 @@ TiXmlElement* Collada::createNode(string name, TiXmlElement* parentNode, Vector3
 
 	if (instanceGeometryName.length() != 0)
 		makeInstanceGeometryOnNode(node, instanceGeometryName, materialName, haveTexture);
+  else
+  	node->SetAttribute("type", "NODE");
 
 	return node;
 }
