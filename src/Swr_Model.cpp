@@ -938,64 +938,57 @@ void Swr_Model::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size,
 				else
 					listToCleanBecauseOfDebug.push_back(node_data);
 
-        unsigned int lstr_index = 0;
+				unsigned int lstr_index = 0;
 
-        // The data size is given in number of DWORDs
-        size_t data_offset = 0;
+				// The data size is given in number of DWORDs
+				size_t data_offset = 0;
 				while(data_offset < nbDatas * 4)
 				{
 
-  				uint32_t* data_words = (uint32_t*)GetOffsetPtr(buf, offset, true);
+  					uint32_t* data_words = (uint32_t*)GetOffsetPtr(buf, offset, true);
 
-          if(memcmp(hdr_section2->signature, SWR_MODEL_SIGNATURE_TRACK, 4) == 0) {
+					if(memcmp(hdr_section2->signature, SWR_MODEL_SIGNATURE_TRACK, 4) == 0)
+					{
+						if (memcmp(datas, "LStr", 4) != 0) 
+							break;
 
-            if (memcmp(datas, "LStr", 4) == 0) {
+						LStrData* lstr_data = (LStrData*)data_words;
 
-              typedef struct {
-                uint32_t magic;
-                float x;
-                float y;
-                float z;
-              } LStrData;
-              LStrData* lstr_data = (LStrData*)data_words;
+						float x = val_float(lstr_data->x);
+						float y = val_float(lstr_data->y);
+						float z = val_float(lstr_data->z);
 
-              float x = val_float(lstr_data->x);
-              float y = val_float(lstr_data->y);
-              float z = val_float(lstr_data->z);
+						TiXmlElement* node = new TiXmlElement("LStr");
+						node->SetAttribute("x", FloatToString(x));
+						node->SetAttribute("y", FloatToString(y));
+						node->SetAttribute("z", FloatToString(z));
+						node_data->LinkEndChild(node);
 
-					    TiXmlElement* node = new TiXmlElement("LStr");
-              node->SetAttribute("x", FloatToString(x));
-              node->SetAttribute("y", FloatToString(y));
-              node->SetAttribute("z", FloatToString(z));
-              node_data->LinkEndChild(node);
+						string lightName = "LightStreak_" + std::to_string(lstr_index++);
 
-              collada->createNode("LStr_" + std::to_string(lstr_index++), 0,
-                Vector3(x, y, z),
-                Vector3::zero, "", "", false, Vector3(10.0f, 10.0f, 10.0f));
+						collada->addLight(lightName);
+						collada->createNode(lightName, 0, Vector3(x, y, z), Vector3::zero, "", "", false, Vector3(10.0f, 10.0f, 10.0f), lightName);
 
-					    offset += sizeof(LStrData);
-              data_offset += sizeof(LStrData);
-            } else {
-              assert(false);
-            }
+						offset += sizeof(LStrData);
+						data_offset += sizeof(LStrData);
+						
 
-          } else if(memcmp(hdr_section2->signature, SWR_MODEL_SIGNATURE_SCENE, 4) == 0) {
+					} else if(memcmp(hdr_section2->signature, SWR_MODEL_SIGNATURE_SCENE, 4) == 0) {
 
-            // Scen seems to have a collection of floats floats, without chunk
+						// Scen seems to have a collection of floats floats, without chunk
 
-				    TiXmlElement* node = new TiXmlElement("Unknown");
-            node->SetAttribute("u32", UnsignedToString(val32(*data_words), true));
-            node_data->LinkEndChild(node);
+						TiXmlElement* node = new TiXmlElement("Unknown");
+						node->SetAttribute("u32", UnsignedToString(val32(*data_words), true));
+						node_data->LinkEndChild(node);
 
-				    offset += 4;
-            data_offset += 4;
+						offset += 4;
+						data_offset += 4;
 
-          } else {
-            assert(false);
-          }
+					} else {
+						break;
+					}
 				}
-
-        assert(data_offset == nbDatas * 4);
+				
 
 				//todo understand data is for what ? linked to another files ?
 

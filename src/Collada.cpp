@@ -241,6 +241,298 @@ Collada::Collada()
 	node_instance_visual_scene->SetAttribute("url", "#VisualSceneNode");
 }
 
+
+
+/*-------------------------------------------------------------------------------\
+|                             addLight											 |
+\-------------------------------------------------------------------------------*/
+void Collada::addLight(string name)
+{
+	checkRootFor("library_lights");
+
+	size_t nbMat = listLights.size();
+	for (size_t i = 0; i < nbMat; i++)						//avoid duplications
+		if (listLights.at(i) == name)
+			return;
+	listLights.push_back(name);
+
+
+	TiXmlElement* node_light = new TiXmlElement("light");
+	node_library_lights->LinkEndChild(node_light);
+	node_light->SetAttribute("id", name);
+
+
+
+	///////////////
+
+	TiXmlElement* node_technique_common = new TiXmlElement("technique_common");
+	node_light->LinkEndChild(node_technique_common);
+
+
+	TiXmlElement* node_point = new TiXmlElement("point");
+	node_technique_common->LinkEndChild(node_point);
+	
+	TiXmlElement* node_color = new TiXmlElement("color");
+	node_point->LinkEndChild(node_color);
+	node_color->SetAttribute("sid", "color");
+	node_color->LinkEndChild(new TiXmlText("1 1 1"));
+
+	TiXmlElement* node_constant_attenuation = new TiXmlElement("constant_attenuation");
+	node_point->LinkEndChild(node_constant_attenuation);
+	node_constant_attenuation->LinkEndChild(new TiXmlText("1"));
+
+	TiXmlElement* node_linear_attenuation = new TiXmlElement("linear_attenuation");
+	node_point->LinkEndChild(node_linear_attenuation);
+	node_linear_attenuation->LinkEndChild(new TiXmlText("0"));
+
+	TiXmlElement* node_quadratic_attenuation = new TiXmlElement("quadratic_attenuation");
+	node_point->LinkEndChild(node_quadratic_attenuation);
+	node_quadratic_attenuation->LinkEndChild(new TiXmlText("0.00111109"));
+
+
+	///////////////
+
+	TiXmlElement* node_extra = new TiXmlElement("extra");
+	node_light->LinkEndChild(node_extra);
+
+	TiXmlElement* node_technique = new TiXmlElement("technique");
+	node_extra->LinkEndChild(node_technique);
+	node_technique->SetAttribute("profile", "blender");
+
+
+	TiXmlElement* node = new TiXmlElement("adapt_thresh");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("0.000999987"));
+
+	node = new TiXmlElement("area_shape");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("0"));
+
+	node = new TiXmlElement("area_size");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("area_sizey");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("area_sizez");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("atm_distance_factor");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("atm_extinction_factor");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("atm_turbidity");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("2"));
+
+	node = new TiXmlElement("att1");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("0"));
+
+	node = new TiXmlElement("att2");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("backscattered_light");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("bias");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("blue");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("buffers");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("bufflag");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("0"));
+
+	node = new TiXmlElement("bufsize");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("2880"));
+
+	node = new TiXmlElement("buftype");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("2"));
+
+	node = new TiXmlElement("clipend");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("30.002"));
+
+	node = new TiXmlElement("clipsta");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1.000799"));
+
+	node = new TiXmlElement("compressthresh");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("0.04999995"));
+
+	node = new TiXmlElement("dist");
+	node_technique->LinkEndChild(node);
+	node->SetAttribute("sid", "blender_dist");
+	node->LinkEndChild(new TiXmlText("29.99998"));
+
+	node = new TiXmlElement("energy");
+	node_technique->LinkEndChild(node);
+	node->SetAttribute("sid", "blender_energy");
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("falloff_type");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("2"));
+
+	node = new TiXmlElement("filtertype");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("0"));
+
+	node = new TiXmlElement("flag");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("0"));
+
+	node = new TiXmlElement("gamma");
+	node_technique->LinkEndChild(node);
+	node->SetAttribute("sid", "blender_gamma");
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("green");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("halo_intensity");
+	node_technique->LinkEndChild(node);
+	node->SetAttribute("sid", "blender_halo_intensity");
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("horizon_brightness");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("mode");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("8192"));
+
+	node = new TiXmlElement("ray_samp");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("ray_samp_method");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("ray_samp_type");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("0"));
+
+	node = new TiXmlElement("ray_sampy");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("ray_sampz");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("red");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("samp");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("3"));
+
+	node = new TiXmlElement("shadhalostep");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("0"));
+
+	node = new TiXmlElement("shadow_b");
+	node_technique->LinkEndChild(node);
+	node->SetAttribute("sid", "blender_shadow_b");
+	node->LinkEndChild(new TiXmlText("0"));
+
+	node = new TiXmlElement("shadow_g");
+	node_technique->LinkEndChild(node);
+	node->SetAttribute("sid", "blender_shadow_g");
+	node->LinkEndChild(new TiXmlText("0"));
+
+	node = new TiXmlElement("shadow_r");
+	node_technique->LinkEndChild(node);
+	node->SetAttribute("sid", "blender_shadow_r");
+	node->LinkEndChild(new TiXmlText("0"));
+
+	node = new TiXmlElement("shadspotsize");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("45"));
+
+	node = new TiXmlElement("sky_colorspace");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("0"));
+
+	node = new TiXmlElement("sky_exposure");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+
+	node = new TiXmlElement("skyblendfac");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("skyblendtype");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("soft");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("3"));
+
+
+	node = new TiXmlElement("spotblend");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("0.15"));
+
+	node = new TiXmlElement("spotsize");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("75"));
+
+	node = new TiXmlElement("spread");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+
+	node = new TiXmlElement("sun_brightness");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("sun_effect_type");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("0"));
+
+	node = new TiXmlElement("sun_intensity");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("sun_size");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("1"));
+
+	node = new TiXmlElement("type");
+	node_technique->LinkEndChild(node);
+	node->LinkEndChild(new TiXmlText("0"));
+}
+
+
+
 /*-------------------------------------------------------------------------------\
 |                             addGeometry										 |
 \-------------------------------------------------------------------------------*/
@@ -574,7 +866,7 @@ void Collada::addColorMaterial(string name, string color)
 /*-------------------------------------------------------------------------------\
 |                             createNode										 |
 \-------------------------------------------------------------------------------*/
-TiXmlElement* Collada::createNode(string name, TiXmlElement* parentNode, Vector3 position, Vector3 rotationAngles, string instanceGeometryName, string materialName, bool haveTexture, Common::Vector3 scale)
+TiXmlElement* Collada::createNode(string name, TiXmlElement* parentNode, Vector3 position, Vector3 rotationAngles, string instanceGeometryName, string materialName, bool haveTexture, Common::Vector3 scale, string instanceLightName)
 {
 	if (!parentNode)
 		parentNode = node_visual_scene;
@@ -589,8 +881,10 @@ TiXmlElement* Collada::createNode(string name, TiXmlElement* parentNode, Vector3
 
 	if (instanceGeometryName.length() != 0)
 		makeInstanceGeometryOnNode(node, instanceGeometryName, materialName, haveTexture);
-  else
-  	node->SetAttribute("type", "NODE");
+	else if (instanceLightName.length() != 0)
+		makeInstanceLightOnNode(node, instanceLightName);
+	else
+		node->SetAttribute("type", "NODE");
 
 	return node;
 }
@@ -616,6 +910,15 @@ void Collada::makeInstanceGeometryOnNode(TiXmlElement* node, string instanceGeom
 		node_instance_material->SetAttribute("symbol", materialName);
 		node_instance_material->SetAttribute("target", "#" + materialName);
 	}
+}
+/*-------------------------------------------------------------------------------\
+|                             makeInstanceLightOnNode							 |
+\-------------------------------------------------------------------------------*/
+void Collada::makeInstanceLightOnNode(TiXmlElement* node, string instanceLightName)
+{
+	TiXmlElement* node_instance_geometry = new TiXmlElement("instance_light");
+	node->LinkEndChild(node_instance_geometry);
+	node_instance_geometry->SetAttribute("url", "#" + instanceLightName);
 }
 /*-------------------------------------------------------------------------------\
 |                             addTransformOnNode								 |
@@ -801,6 +1104,7 @@ void Collada::addImage(string name, string filename)
 	node_image->LinkEndChild(node_init_from);
 	node_init_from->LinkEndChild(new TiXmlText(filename));
 }
+
 
 
 

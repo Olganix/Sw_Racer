@@ -60,6 +60,14 @@ struct SWR_Data
 static_assert(sizeof(SWR_Data) == 0x4, "Incorrect structure size.");
 
 
+struct LStrData
+{
+	uint32_t magic;
+	float x;
+	float y;
+	float z;
+};
+
 ///////////////////////////////////////////
 
 

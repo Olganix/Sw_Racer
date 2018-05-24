@@ -166,22 +166,24 @@ public:
 	std::vector<string> listMaterialNames;
 	std::vector<string> listTextureNames;
 	std::vector<Effect> listEffects;
+	std::vector<string> listLights;
 
 public:
 	Collada();
 	virtual ~Collada() { if (doc) { delete doc; } }
 
 	//usual function
+	void addLight(string name);
 	void addGeometry(string name, std::vector<EMDVertex> &vertices, std::vector<EMDTriangles> &triangles, string materialName);
 	void addTextureMaterial(string name, string filename, WrapMode wrap_u, WrapMode wrap_v);
 	void addColorMaterial(string name, string color);
 	void addAnimation(ColladaAnimation &animation);
 	void addAnimationExtraInformations(float framePerSecond, float startTime, float endTime);
-	
 
 
-	TiXmlElement* createNode(string name, TiXmlElement* parentNode = 0, Common::Vector3 position = Common::Vector3::zero, Common::Vector3 rotationAngles = Common::Vector3::zero, string instanceGeometryName = "", string materialName = "", bool haveTexture = false, Common::Vector3 scale = Common::Vector3::unit);
+	TiXmlElement* createNode(string name, TiXmlElement* parentNode = 0, Common::Vector3 position = Common::Vector3::zero, Common::Vector3 rotationAngles = Common::Vector3::zero, string instanceGeometryName = "", string materialName = "", bool haveTexture = false, Common::Vector3 scale = Common::Vector3::unit, string instanceLightName = "");
 	void makeInstanceGeometryOnNode(TiXmlElement* node, string instanceGeometryName, string materialName = "", bool haveTexture = false);
+	void makeInstanceLightOnNode(TiXmlElement* node, string instanceLightName);
 	void addTransformOnNode(TiXmlElement* node = 0, Common::Vector3 position = Common::Vector3::zero, Common::Vector3 rotationAngles = Common::Vector3::zero, Common::Vector3 scale = Common::Vector3::unit);
 
 	void save(string filename);
